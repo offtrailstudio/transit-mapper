@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Embeddable GTFS-aligned schematic transit map editor (React + Mapbox).",
   "license": "MIT",
-  "author": "Off Trail Studio",
+  "author": "Off-Trail Studio LLC",
   "homepage": "https://github.com/offtrailstudio/transit-mapper#readme",
   "repository": {
     "type": "git",
