@@ -4,14 +4,13 @@
   "description": "Embeddable GTFS-aligned schematic transit map editor (React + Mapbox).",
   "license": "MIT",
   "author": "Off Trail Studio",
-  "homepage": "https://github.com/rcrusoe/transit-league-website/tree/main/packages/transit-mapper#readme",
+  "homepage": "https://github.com/offtrailstudio/transit-mapper#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rcrusoe/transit-league-website.git",
-    "directory": "packages/transit-mapper"
+    "url": "git+https://github.com/offtrailstudio/transit-mapper.git"
   },
   "bugs": {
-    "url": "https://github.com/rcrusoe/transit-league-website/issues"
+    "url": "https://github.com/offtrailstudio/transit-mapper/issues"
   },
   "keywords": [
     "transit",
@@ -66,6 +65,9 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.3",
     "@types/geojson": "^7946.0.16",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "bunchee": "^7.0.1",
     "jsdom": "^29.1.1",
     "typescript": "^5",
