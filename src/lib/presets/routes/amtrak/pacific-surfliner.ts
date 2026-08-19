@@ -1,0 +1,33 @@
+import { PresetRoute } from "../../types";
+
+export const pacificSurfliner: PresetRoute = {
+  id: "amtrak-pacific-surfliner",
+  name: "Pacific Surfliner",
+  groupId: "amtrak",
+  description: "Amtrak · San Luis Obispo – San Diego",
+  stops: [
+    { name: "San Luis Obispo, CA", lng: -120.6596, lat: 35.2828 },
+    { name: "Grover Beach, CA", lng: -120.6292, lat: 35.1213 },
+    { name: "Santa Barbara, CA", lng: -119.6926, lat: 34.4146 },
+    { name: "Goleta, CA", lng: -119.8281, lat: 34.4361 },
+    { name: "Ventura, CA", lng: -119.2933, lat: 34.2805 },
+    { name: "Oxnard, CA", lng: -119.1786, lat: 34.1983 },
+    { name: "Camarillo, CA", lng: -119.0376, lat: 34.2164 },
+    { name: "Moorpark, CA", lng: -118.882, lat: 34.2846 },
+    { name: "Simi Valley, CA", lng: -118.7815, lat: 34.2694 },
+    { name: "Chatsworth, CA", lng: -118.5989, lat: 34.2536 },
+    { name: "Van Nuys, CA", lng: -118.4487, lat: 34.1866 },
+    { name: "Hollywood Burbank Airport", lng: -118.3506, lat: 34.199 },
+    { name: "Glendale, CA", lng: -118.2547, lat: 34.1361 },
+    { name: "Los Angeles Union Station", lng: -118.2367, lat: 34.0559 },
+    { name: "Fullerton, CA", lng: -117.9236, lat: 33.8703 },
+    { name: "Anaheim (ARTIC)", lng: -117.8775, lat: 33.8033 },
+    { name: "Santa Ana, CA", lng: -117.8676, lat: 33.7469 },
+    { name: "Irvine, CA", lng: -117.7758, lat: 33.6801 },
+    { name: "San Juan Capistrano, CA", lng: -117.6625, lat: 33.5019 },
+    { name: "San Clemente Pier, CA", lng: -117.6194, lat: 33.4192 },
+    { name: "Oceanside, CA", lng: -117.3795, lat: 33.1958 },
+    { name: "Solana Beach, CA", lng: -117.2701, lat: 32.9911 },
+    { name: "San Diego Santa Fe Depot", lng: -117.1668, lat: 32.7157 },
+  ],
+};

@@ -1,0 +1,30 @@
+import { PresetRoute } from "../../types";
+
+export const vermonter: PresetRoute = {
+  id: "amtrak-vermonter",
+  name: "Vermonter",
+  groupId: "amtrak",
+  description: "Amtrak · Washington, DC – St. Albans, VT",
+  stops: [
+    { name: "Washington Union Station, DC", lng: -77.0068, lat: 38.8973 },
+    { name: "BWI Airport Station, MD", lng: -76.6857, lat: 39.1954 },
+    { name: "Baltimore Penn Station, MD", lng: -76.6156, lat: 39.3078 },
+    { name: "Wilmington, DE", lng: -75.554, lat: 39.7368 },
+    { name: "Philadelphia 30th Street Station", lng: -75.1822, lat: 39.9566 },
+    { name: "Trenton Transit Center, NJ", lng: -74.7566, lat: 40.2171 },
+    { name: "Newark Penn Station, NJ", lng: -74.1644, lat: 40.7342 },
+    { name: "New York Penn Station", lng: -73.9939, lat: 40.7506 },
+    { name: "New Haven Union Station, CT", lng: -72.9268, lat: 41.2967 },
+    { name: "Hartford, CT", lng: -72.6738, lat: 41.7637 },
+    { name: "Springfield Union Station, MA", lng: -72.5959, lat: 42.1155 },
+    { name: "Holyoke, MA", lng: -72.6229, lat: 42.2043 },
+    { name: "Northampton, MA", lng: -72.6362, lat: 42.3168 },
+    { name: "Greenfield, MA", lng: -72.5998, lat: 42.5876 },
+    { name: "Brattleboro, VT", lng: -72.5579, lat: 42.8506 },
+    { name: "Bellows Falls, VT", lng: -72.4453, lat: 43.1339 },
+    { name: "White River Junction, VT", lng: -72.3187, lat: 43.6482 },
+    { name: "Montpelier, VT", lng: -72.5762, lat: 44.2601 },
+    { name: "Essex Junction, VT", lng: -73.116, lat: 44.4909 },
+    { name: "St. Albans, VT", lng: -73.0851, lat: 44.8114 },
+  ],
+};

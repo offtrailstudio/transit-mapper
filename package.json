@@ -1,0 +1,50 @@
+{
+  "name": "@offtrailstudio/transit-mapper",
+  "version": "0.1.0",
+  "description": "Embeddable GTFS-aligned schematic transit map editor (React + Mapbox).",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bunchee",
+    "dev": "bunchee --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bunchee",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "mapbox-gl": ">=3",
+    "react": ">=19",
+    "react-dom": ">=19",
+    "react-map-gl": ">=8"
+  },
+  "dependencies": {
+    "@radix-ui/react-tooltip": "^1.2.16",
+    "clsx": "^2.1.1",
+    "input-otp": "^1.4.2",
+    "lucide-react": "^1.28.0",
+    "radix-ui": "^1.6.7",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.3",
+    "@types/geojson": "^7946.0.16",
+    "bunchee": "^7.0.1",
+    "jsdom": "^29.1.1",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  }
+}

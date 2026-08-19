@@ -1,0 +1,30 @@
+import { PresetRoute } from "../../types";
+
+export const cityOfNewOrleans: PresetRoute = {
+  id: "amtrak-city-of-new-orleans",
+  name: "City of New Orleans",
+  groupId: "amtrak",
+  description: "Amtrak · Chicago – New Orleans",
+  stops: [
+    { name: "Chicago Union Station", lng: -87.6398, lat: 41.8789 },
+    { name: "Homewood, IL", lng: -87.6634, lat: 41.5586 },
+    { name: "Kankakee, IL", lng: -87.8612, lat: 41.12 },
+    { name: "Champaign-Urbana, IL", lng: -88.2434, lat: 40.1164 },
+    { name: "Mattoon, IL", lng: -88.3728, lat: 39.4828 },
+    { name: "Effingham, IL", lng: -88.5434, lat: 39.12 },
+    { name: "Centralia, IL", lng: -89.1334, lat: 38.525 },
+    { name: "Carbondale, IL", lng: -89.2137, lat: 37.7273 },
+    { name: "Fulton, KY", lng: -88.8778, lat: 36.5006 },
+    { name: "Newbern-Dyersburg, TN", lng: -89.2553, lat: 36.1067 },
+    { name: "Memphis Central Station", lng: -90.057, lat: 35.1281 },
+    { name: "Marks, MS", lng: -90.2712, lat: 34.2515 },
+    { name: "Greenwood, MS", lng: -90.1795, lat: 33.5154 },
+    { name: "Yazoo City, MS", lng: -90.4084, lat: 32.8548 },
+    { name: "Jackson, MS", lng: -90.1971, lat: 32.2988 },
+    { name: "Hazlehurst, MS", lng: -90.3915, lat: 31.8607 },
+    { name: "Brookhaven, MS", lng: -90.4429, lat: 31.5793 },
+    { name: "McComb, MS", lng: -90.4534, lat: 31.2427 },
+    { name: "Hammond, LA", lng: -90.4756, lat: 30.5044 },
+    { name: "New Orleans Union Passenger Terminal", lng: -90.0798, lat: 29.9469 },
+  ],
+};

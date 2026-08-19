@@ -1,0 +1,32 @@
+import { PresetRoute } from "../../types";
+
+export const sunsetLimited: PresetRoute = {
+  id: "amtrak-sunset-limited",
+  name: "Sunset Limited",
+  groupId: "amtrak",
+  description: "Amtrak · New Orleans – Los Angeles",
+  stops: [
+    { name: "New Orleans Union Passenger Terminal", lng: -90.0798, lat: 29.9469 },
+    { name: "Schriever, LA", lng: -90.8271, lat: 29.7469 },
+    { name: "New Iberia, LA", lng: -91.8154, lat: 30.0035 },
+    { name: "Lafayette, LA", lng: -92.0198, lat: 30.2168 },
+    { name: "Lake Charles, LA", lng: -93.2085, lat: 30.2266 },
+    { name: "Beaumont, TX", lng: -94.1018, lat: 30.0802 },
+    { name: "Houston, TX", lng: -95.362, lat: 29.7523 },
+    { name: "San Antonio, TX", lng: -98.4721, lat: 29.4246 },
+    { name: "Del Rio, TX", lng: -100.8968, lat: 29.3709 },
+    { name: "Sanderson, TX", lng: -102.3941, lat: 30.1408 },
+    { name: "Alpine, TX", lng: -103.6614, lat: 30.3574 },
+    { name: "El Paso, TX", lng: -106.4894, lat: 31.7595 },
+    { name: "Deming, NM", lng: -107.7586, lat: 32.2687 },
+    { name: "Lordsburg, NM", lng: -108.7059, lat: 32.3495 },
+    { name: "Benson, AZ", lng: -110.3009, lat: 31.9676 },
+    { name: "Tucson, AZ", lng: -110.9747, lat: 32.2124 },
+    { name: "Maricopa, AZ", lng: -112.048, lat: 33.0581 },
+    { name: "Yuma, AZ", lng: -114.6188, lat: 32.6927 },
+    { name: "Palm Springs, CA", lng: -116.5453, lat: 33.8225 },
+    { name: "Ontario, CA", lng: -117.6067, lat: 34.0633 },
+    { name: "Pomona, CA", lng: -117.7519, lat: 34.0888 },
+    { name: "Los Angeles Union Station", lng: -118.2364, lat: 34.0559 },
+  ],
+};
