@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupPresetRoutes } from "./groupLines";
+import { groupPresetRoutes, resolvePresetRouteType } from "./groupLines";
 import { PresetGroup, PresetRoute } from "./types";
 
 const GROUPS: PresetGroup[] = [
@@ -42,5 +42,23 @@ describe("groupPresetRoutes", () => {
     const result = groupPresetRoutes(routes, GROUPS);
 
     expect(result.some((r) => r.group === null)).toBe(false);
+  });
+});
+
+describe("resolvePresetRouteType", () => {
+  const busGroup: PresetGroup = { id: "g", name: "G", defaultRouteType: "bus" };
+
+  it("uses the route's own routeType when set", () => {
+    const r: PresetRoute = { id: "a", name: "a", routeType: "hsr", stops: [] };
+    expect(resolvePresetRouteType(r, busGroup)).toBe("hsr");
+  });
+
+  it("falls back to the group's defaultRouteType", () => {
+    expect(resolvePresetRouteType(route("a", "g"), busGroup)).toBe("bus");
+  });
+
+  it("falls back to the editor default when neither is set", () => {
+    expect(resolvePresetRouteType(route("a"), null)).toBe("subway");
+    expect(resolvePresetRouteType(route("a"), { id: "g", name: "G" })).toBe("subway");
   });
 });

@@ -3,6 +3,7 @@ import { PresetRoute } from "../../types";
 export const acela: PresetRoute = {
   id: "amtrak-acela",
   name: "Acela",
+  routeType: "hsr",
   groupId: "amtrak",
   description: "Amtrak · Boston – Washington, DC",
   stops: [

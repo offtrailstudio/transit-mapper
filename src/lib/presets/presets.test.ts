@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { PRESET_GROUPS } from "./groups";
 import { PRESET_LINES } from "./index";
+import { resolvePresetRouteType } from "./groupLines";
+import { ROUTE_TYPES } from "../lineKinds";
 
 describe("PRESET_LINES", () => {
   it("every route has at least 2 stops", () => {
@@ -52,11 +54,34 @@ describe("PRESET_LINES", () => {
       expect(route.routeType).toBe("bus");
     }
   });
+
+  it("resolves a transit mode for every route", () => {
+    const groupsById = new Map(PRESET_GROUPS.map((g) => [g.id, g]));
+    for (const route of PRESET_LINES) {
+      const group = route.groupId ? groupsById.get(route.groupId) ?? null : null;
+      expect(ROUTE_TYPES).toContain(resolvePresetRouteType(route, group));
+    }
+  });
+
+  it("types Amtrak as rail, with Acela overriding to high-speed rail", () => {
+    const groupsById = new Map(PRESET_GROUPS.map((g) => [g.id, g]));
+    const amtrak = PRESET_LINES.filter((l) => l.groupId === "amtrak");
+    for (const route of amtrak) {
+      const expected = route.id === "amtrak-acela" ? "hsr" : "rail";
+      expect(resolvePresetRouteType(route, groupsById.get("amtrak")!)).toBe(expected);
+    }
+  });
 });
 
 describe("PRESET_GROUPS", () => {
   it("has unique ids", () => {
     const ids = PRESET_GROUPS.map((g) => g.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("every group declares a default transit mode", () => {
+    for (const group of PRESET_GROUPS) {
+      expect(group.defaultRouteType).toBeDefined();
+    }
   });
 });

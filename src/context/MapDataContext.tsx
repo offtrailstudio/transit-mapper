@@ -15,6 +15,8 @@ import {
 } from "../lib/projects";
 import { CloudMap } from "../lib/cloudSync";
 import { EMPTY_MAP_DATA, TransitMapData } from "../lib/types";
+import { PresetSource } from "../lib/presets";
+import { PresetsProvider } from "./PresetsContext";
 
 export type ProjectSummary = { id: string; title: string; data: TransitMapData };
 
@@ -83,6 +85,7 @@ export function MapDataProvider({
   loadInitial,
   persist,
   useSync = useNoCloudSync,
+  presets,
 }: {
   children: React.ReactNode;
   /**
@@ -98,6 +101,13 @@ export function MapDataProvider({
    * unconditionally every render, so any implementation must obey the rules of hooks.
    */
   useSync?: UseCloudSync;
+  /**
+   * The preset-route catalog for the "Add a preset route" picker: an object, or a
+   * (possibly async) loader fetched lazily on first open. Default: the catalog
+   * bundled with the package. Serve your own (see `createRemotePresetLoader`) so
+   * adding networks or nudging stops doesn't require a package release.
+   */
+  presets?: PresetSource;
 }) {
   const [history, dispatch] = useReducer(historyReducer, initialHistoryState);
   const state = history.present;
@@ -257,7 +267,7 @@ export function MapDataProvider({
         saveActiveMap,
       }}
     >
-      {children}
+      <PresetsProvider source={presets}>{children}</PresetsProvider>
     </MapDataContext.Provider>
   );
 }

@@ -13,4 +13,13 @@ export type PresetRoute = {
   stops: PresetStop[];
 };
 
-export type PresetGroup = { id: string; name: string; description?: string };
+export type PresetGroup = {
+  id: string;
+  name: string;
+  description?: string;
+  /**
+   * Transit mode every route in this group adopts unless it sets its own
+   * `routeType`. Lets a whole network be typed once instead of per route.
+   */
+  defaultRouteType?: RouteType;
+};

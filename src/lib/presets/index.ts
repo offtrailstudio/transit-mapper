@@ -1,4 +1,6 @@
 import { PresetRoute } from "./types";
+import { PRESET_GROUPS } from "./groups";
+import { PresetCatalog, PRESET_SCHEMA_VERSION } from "./catalog";
 import { northeastRegional } from "./routes/amtrak/northeast-regional";
 import { acela } from "./routes/amtrak/acela";
 import { keystoneService } from "./routes/amtrak/keystone-service";
@@ -131,6 +133,19 @@ export const PRESET_LINES: PresetRoute[] = [
   dutchessRouteG,
 ];
 
+/**
+ * The catalog the editor falls back to when a host injects nothing — the same
+ * routes that shipped before presets became injectable, so a bare embed is
+ * unchanged. Hosts that expect frequent changes should serve their own catalog
+ * (see `createRemotePresetLoader`) instead of relying on this.
+ */
+export const DEFAULT_PRESET_CATALOG: PresetCatalog = {
+  schemaVersion: PRESET_SCHEMA_VERSION,
+  groups: PRESET_GROUPS,
+  routes: PRESET_LINES,
+};
+
 export * from "./types";
 export * from "./groups";
 export * from "./groupLines";
+export * from "./catalog";
