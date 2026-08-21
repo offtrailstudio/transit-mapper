@@ -18,3 +18,5 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # Assemble + validate the preset catalog so a bad route never merges.
+      - run: npm run build:catalog

@@ -91,6 +91,49 @@ function Rail() {
 }
 ```
 
+### Preset routes
+
+The editor ships a catalog of real-world networks (Amtrak, Metro-North, …) that
+users can drop onto a map from the **Add a preset route** modal. The modal groups
+routes by network, is searchable, and shows each route's default transit mode.
+Each route resolves a transit mode from, in order: its own `routeType`, its
+group's `defaultRouteType`, then the editor default.
+
+**The catalog is host-injectable so it isn't tied to the package version.** Route
+data changes far more often than editor code (new networks, moved stops), so pass
+your own catalog to `MapDataProvider` instead of relying on the bundled one — then
+updating routes is a redeploy of a JSON file, not an `npm` release:
+
+```tsx
+import { createRemotePresetLoader } from "@offtrailstudio/transit-mapper";
+
+// Fetched lazily the first time the modal opens, then cached. The payload is
+// validated (see PresetCatalog / PRESET_SCHEMA_VERSION); a bad shape shows an
+// error with a retry rather than breaking the editor. Pin to an immutable tag so
+// a catalog update never lands silently — bump the tag when you choose to pull it.
+const loadPresets = createRemotePresetLoader(
+  "https://cdn.jsdelivr.net/gh/offtrailstudio/transit-networks@v1.0.0/presets.v1.json",
+);
+
+<MapDataProvider presets={loadPresets}>…</MapDataProvider>;
+```
+
+`presets` accepts either a `PresetCatalog` object or a (sync or async) loader
+returning one. Omit it to use `DEFAULT_PRESET_CATALOG` (the bundled routes).
+
+To offer only some of the *visible* networks, pass a `presetGroups` allowlist of
+group ids:
+
+```tsx
+<EditorConfigProvider config={{ mapboxToken, presetGroups: ["amtrak"] }}>
+```
+
+An empty array hides every preset. `PRESET_LINES`, `PRESET_GROUPS`,
+`DEFAULT_PRESET_CATALOG`, `groupPresetRoutes`, `resolvePresetRouteType`,
+`validatePresetCatalog`, `createRemotePresetLoader`, and `ROUTE_TYPES` (the valid
+`routeType` values) are all exported if you want to build your own catalog or
+picker.
+
 ## Tailwind
 
 The editor's UI is styled with Tailwind utility classes compiled by **your**

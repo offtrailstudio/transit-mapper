@@ -12,6 +12,13 @@ import { createContext, useContext, type ReactNode } from "react";
  */
 export type EditorConfig = {
   mapboxToken?: string;
+  /**
+   * Which built-in preset networks appear in the "Add a preset route" modal,
+   * by group id (e.g. `["amtrak"]` to offer only Amtrak). Omit to show every
+   * shipped network. An empty array shows none. Group ids come from
+   * `PRESET_GROUPS`.
+   */
+  presetGroups?: string[];
 };
 
 const ConfigContext = createContext<EditorConfig>({});

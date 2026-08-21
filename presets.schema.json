@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/offtrailstudio/transit-mapper/presets.schema.json",
+  "title": "PresetCatalog",
+  "description": "The injectable preset-route catalog for @offtrailstudio/transit-mapper. Keep in sync with PresetCatalog in src/lib/presets/catalog.ts.",
+  "type": "object",
+  "required": ["schemaVersion", "groups", "routes"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "description": "Catalog shape version. The editor rejects a payload whose value it doesn't understand.",
+      "type": "integer",
+      "const": 1
+    },
+    "version": {
+      "description": "Semver of the content (new routes = minor, coordinate fixes = patch, schema bump = major).",
+      "type": "string"
+    },
+    "generatedAt": {
+      "description": "ISO-8601 timestamp of when this snapshot was built.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "groups": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/PresetGroup" }
+    },
+    "routes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/PresetRoute" }
+    }
+  },
+  "definitions": {
+    "RouteType": {
+      "type": "string",
+      "enum": ["bus", "tram", "subway", "ferry", "rail", "hsr"]
+    },
+    "PresetGroup": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "defaultRouteType": {
+          "description": "Transit mode every route in this group adopts unless it sets its own routeType.",
+          "$ref": "#/definitions/RouteType"
+        }
+      }
+    },
+    "PresetStop": {
+      "type": "object",
+      "required": ["name", "lng", "lat"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "lng": { "type": "number", "minimum": -180, "maximum": 180 },
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 }
+      }
+    },
+    "PresetRoute": {
+      "type": "object",
+      "required": ["id", "name", "stops"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "routeType": { "$ref": "#/definitions/RouteType" },
+        "description": { "type": "string" },
+        "groupId": { "type": "string" },
+        "stops": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/definitions/PresetStop" }
+        }
+      }
+    }
+  }
+}

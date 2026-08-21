@@ -23,6 +23,25 @@ Testing Library (jsdom); anything that renders the map mocks `react-map-gl`.
 - Keep the domain model GTFS-shaped; keep presentation/derived state out of it.
 - The public API is `src/index.ts` — add exports there when you expose something.
 
+## Adding a preset route
+
+Preset routes (the networks in the "Add a preset route" picker) live in
+`src/lib/presets/routes/<network>/`. To add one:
+
+1. Add a `PresetRoute` file under the right network folder and register it in
+   `src/lib/presets/index.ts`. If it's a new network, add a `PresetGroup` to
+   `groups.ts` (give it a `defaultRouteType` so every route in it gets a transit
+   mode). `presets.schema.json` documents the shape.
+2. Run `npm run build:catalog` — it assembles the catalog, runs
+   `validatePresetCatalog`, and writes `catalog-dist/`. This is what CI checks, so
+   a transposed lng/lat or a route with fewer than two stops fails the build.
+3. `npm test` covers the catalog invariants (unique ids, plausible coordinates).
+
+> The catalog is **host-injectable** — apps can serve their own via
+> `MapDataProvider`'s `presets` prop. The bundled catalog here is the default
+> fallback; over time the source of truth moves to a dedicated data repo that
+> reuses this same `build-catalog` script and schema.
+
 ## Pull requests
 
 1. Fork and branch.

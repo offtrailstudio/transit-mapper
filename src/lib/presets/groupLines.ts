@@ -1,6 +1,17 @@
+import { DEFAULT_ROUTE_TYPE } from "../lineKinds";
+import { RouteType } from "../types";
 import { PresetRoute, PresetGroup } from "./types";
 
 export type PresetRouteGroup = { group: PresetGroup | null; routes: PresetRoute[] };
+
+/**
+ * The transit mode a preset route resolves to: its own `routeType` wins, then
+ * its group's `defaultRouteType`, then the editor-wide default. This is the
+ * mode a route adopts when added to a map.
+ */
+export function resolvePresetRouteType(route: PresetRoute, group: PresetGroup | null): RouteType {
+  return route.routeType ?? group?.defaultRouteType ?? DEFAULT_ROUTE_TYPE;
+}
 
 export function groupPresetRoutes(routes: PresetRoute[], groups: PresetGroup[]): PresetRouteGroup[] {
   const byGroupId = new Map<string, PresetRoute[]>();

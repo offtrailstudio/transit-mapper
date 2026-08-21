@@ -48,6 +48,33 @@ export type { CloudMap } from "./lib/cloudSync";
 export { normalizeMapData } from "./lib/migrate";
 export type { TransitMapData } from "./lib/types";
 
+// --- Preset route catalog (drives the "Add a preset route" modal) ---
+// The catalog is host-injectable via `MapDataProvider`'s `presets` prop so route
+// data can change without a package release; the bundled catalog is the default.
+export {
+  PRESET_LINES,
+  PRESET_GROUPS,
+  DEFAULT_PRESET_CATALOG,
+  PRESET_SCHEMA_VERSION,
+  groupPresetRoutes,
+  resolvePresetRouteType,
+  validatePresetCatalog,
+  createRemotePresetLoader,
+} from "./lib/presets";
+export type {
+  PresetRoute,
+  PresetGroup,
+  PresetStop,
+  PresetRouteGroup,
+  PresetCatalog,
+  PresetManifest,
+  PresetSource,
+} from "./lib/presets";
+
+// --- Transit modes (GTFS route_type) — the enum a catalog's routeType must match ---
+export { ROUTE_TYPES, DEFAULT_ROUTE_TYPE } from "./lib/lineKinds";
+export type { RouteType } from "./lib/types";
+
 // --- Export / render ---
 export { computeExportLayout, DEFAULT_PRINT_SIZE_ID } from "./lib/exportGeometry";
 export type { LayoutMode } from "./lib/exportGeometry";

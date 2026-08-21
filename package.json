@@ -1,6 +1,6 @@
 {
   "name": "@offtrailstudio/transit-mapper",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Embeddable GTFS-aligned schematic transit map editor (React + Mapbox).",
   "license": "MIT",
   "author": "Off-Trail Studio LLC",
@@ -44,7 +44,8 @@
     "dev": "bunchee --watch",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bunchee",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:catalog": "tsx scripts/build-catalog.ts"
   },
   "peerDependencies": {
     "mapbox-gl": ">=3",
@@ -70,6 +71,7 @@
     "@types/react-dom": "^19",
     "bunchee": "^7.0.1",
     "jsdom": "^29.1.1",
+    "tsx": "^4.19.2",
     "typescript": "^5",
     "vitest": "^4.1.10"
   }
