@@ -64,7 +64,7 @@ function importErrorMessage(cause: unknown): string {
 
 export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { state, dispatch } = useMapData();
-  const { presetGroups } = useEditorConfig();
+  const { presetGroups, enableFeedImport } = useEditorConfig();
   const { status, catalog, error, ensureLoaded, reload } = usePresets();
   const [query, setQuery] = useState("");
   // Networks the user has expanded; everything else is collapsed. Tracking the
@@ -245,7 +245,7 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
         </div>
       )}
 
-      {status === "ready" && (
+      {status === "ready" && enableFeedImport && (
         <div className="mb-3">
           <div className="flex gap-2">
             <div className="relative flex-1">

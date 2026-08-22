@@ -19,6 +19,14 @@ export type EditorConfig = {
    * `PRESET_GROUPS`.
    */
   presetGroups?: string[];
+  /**
+   * Enable the "paste a GTFS feed URL" control in the preset modal — lets users
+   * import routes from any GTFS `.zip` at runtime. **Off by default** because it
+   * lazy-loads the GTFS parser, which requires the host to have installed the
+   * optional peer deps `fflate` and `csv-parse`. Turn it on only after adding
+   * those, or the control will error when used.
+   */
+  enableFeedImport?: boolean;
 };
 
 const ConfigContext = createContext<EditorConfig>({});

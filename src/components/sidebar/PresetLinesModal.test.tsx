@@ -80,7 +80,7 @@ describe("PresetRoutesModal", () => {
         arrayBuffer: async () => GTFS_ZIP.buffer,
       }))
     );
-    setup();
+    setup({ enableFeedImport: true });
 
     await userEvent.type(
       screen.getByLabelText(/Paste a GTFS feed URL/),
@@ -100,12 +100,18 @@ describe("PresetRoutesModal", () => {
       "fetch",
       vi.fn(async () => ({ ok: false, status: 404, statusText: "Not Found" }))
     );
-    setup();
+    setup({ enableFeedImport: true });
 
     await userEvent.type(screen.getByLabelText(/Paste a GTFS feed URL/), "https://example.com/x.zip");
     await userEvent.click(screen.getByRole("button", { name: "Fetch" }));
 
     expect(await screen.findByText(/404/)).toBeInTheDocument();
+  });
+
+  it("hides the feed-import control unless the host enables it", async () => {
+    setup();
+    expect(await screen.findByLabelText(/Search networks/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Paste a GTFS feed URL/)).not.toBeInTheDocument();
   });
 
   it("searches across every network without needing to expand groups", async () => {

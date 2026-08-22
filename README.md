@@ -149,7 +149,29 @@ group ids:
 <EditorConfigProvider config={{ mapboxToken, presetGroups: ["amtrak"] }}>
 ```
 
-An empty array hides every preset. `PRESET_LINES`, `PRESET_GROUPS`,
+An empty array hides every preset.
+
+**Letting users paste a GTFS link (opt-in).** The picker can show a field where
+a user pastes any no-auth GTFS `.zip` URL (including a Mobility Database
+`latest_dataset.hosted_url`); its routes are fetched, parsed, and transformed in
+the browser and added to the picker. It's **off by default** because it lazy-loads
+the GTFS parser, which needs two optional peer deps:
+
+```bash
+npm install fflate csv-parse
+```
+
+```tsx
+<EditorConfigProvider config={{ mapboxToken, enableFeedImport: true }}>
+```
+
+The parser loads only when someone actually pastes a link (a dynamic `import()`),
+so it never touches your initial bundle. Note: the browser fetches the feed
+directly, so a host without CORS headers will fail — the control surfaces that
+inline. For always-on reliability, proxy the download through your own app and
+have users paste the proxied URL.
+
+`PRESET_LINES`, `PRESET_GROUPS`,
 `DEFAULT_PRESET_CATALOG`, `groupPresetRoutes`, `resolvePresetRouteType`,
 `validatePresetCatalog`, `createRemotePresetLoader`, and `ROUTE_TYPES` (the valid
 `routeType` values) are all exported if you want to build your own catalog or
