@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { nextRouteColor } from "./colors";
 import { routeStopIds, primaryStopIds } from "./lines";
-import { PresetRoute } from "./presets/types";
+import { ResolvedPresetRoute } from "./presets";
 import { EditorState, initialEditorState, mapReducer } from "./reducer";
 
-const FIXTURE_PRESET: PresetRoute = {
+const FIXTURE_PRESET: ResolvedPresetRoute = {
   id: "fixture-route",
   name: "Fixture Route",
   color: "#123456",
   stops: [
-    { name: "Alpha", lng: 0, lat: 0 },
-    { name: "Beta", lng: 1, lat: 1 },
+    { id: "alpha", name: "Alpha", lng: 0, lat: 0 },
+    { id: "beta", name: "Beta", lng: 1, lat: 1 },
   ],
 };
 
@@ -211,7 +211,7 @@ describe("ADD_PRESET_ROUTE", () => {
   });
 
   it("falls back to nextRouteColor when the preset omits a color", () => {
-    const presetWithoutColor: PresetRoute = { ...FIXTURE_PRESET, color: undefined };
+    const presetWithoutColor: ResolvedPresetRoute = { ...FIXTURE_PRESET, color: undefined };
     let state = mapReducer(initialEditorState, {
       type: "ADD_PRESET_ROUTE",
       preset: presetWithoutColor,
@@ -254,12 +254,12 @@ describe("ADD_PRESET_ROUTE", () => {
     const sharedId = state.data.stops[0].id; // "Alpha"
 
     // A second preset whose first stop is the same station as Alpha.
-    const overlapping: PresetRoute = {
+    const overlapping: ResolvedPresetRoute = {
       id: "overlap",
       name: "Overlap Route",
       stops: [
-        { name: "Alpha", lng: 0, lat: 0 },
-        { name: "Gamma", lng: 2, lat: 2 },
+        { id: "alpha2", name: "Alpha", lng: 0, lat: 0 },
+        { id: "gamma", name: "Gamma", lng: 2, lat: 2 },
       ],
     };
     state = mapReducer(state, {
@@ -296,7 +296,7 @@ describe("ADD_PRESET_ROUTE", () => {
   });
 
   it("honors a preset's routeType and seeds that type's headway", () => {
-    const busPreset: PresetRoute = { ...FIXTURE_PRESET, routeType: "bus" };
+    const busPreset: ResolvedPresetRoute = { ...FIXTURE_PRESET, routeType: "bus" };
     const state = mapReducer(initialEditorState, { type: "ADD_PRESET_ROUTE", preset: busPreset });
     expect(state.data.routes[0].routeType).toBe("bus");
     expect(state.data.routes[0].headwayMin).toBe(10); // bus default

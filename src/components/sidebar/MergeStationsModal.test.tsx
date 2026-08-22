@@ -3,14 +3,14 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MergeStationsModal } from "./MergeStationsModal";
 import { StationMergeCandidate } from "../../lib/presetMerge";
-import { PresetRoute } from "../../lib/presets";
+import { ResolvedPresetRoute } from "../../lib/presets";
 
-const PRESET: PresetRoute = {
+const PRESET: ResolvedPresetRoute = {
   id: "acela",
   name: "Acela",
   stops: [
-    { name: "New York Penn", lng: -73.9939, lat: 40.7506 },
-    { name: "Washington Union", lng: -77.0068, lat: 38.8973 },
+    { id: "nyp", name: "New York Penn", lng: -73.9939, lat: 40.7506 },
+    { id: "was", name: "Washington Union", lng: -77.0068, lat: 38.8973 },
   ],
 };
 
