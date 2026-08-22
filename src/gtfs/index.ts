@@ -10,6 +10,7 @@
  * in the client bundle.
  */
 export { assembleCatalog, combineFragments, type AssembleOptions } from "./assemble";
+export { fetchGtfsCatalog, type FetchGtfsCatalogOptions } from "./fetchCatalog";
 export { transformGtfs, type CatalogFragment, type TransformOptions } from "./transform";
 export { parseGtfsZip, type GtfsTables, type GtfsRow } from "./parse";
 export { routeTypeFromGtfs } from "./routeType";

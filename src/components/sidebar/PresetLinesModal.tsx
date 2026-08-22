@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronRight, Link2, Loader2, Search } from "lucide-react";
 import { Modal } from "../Modal";
 import { useMapData } from "../../context/MapDataContext";
 import { useEditorConfig } from "../../context/ConfigContext";
@@ -11,10 +11,12 @@ import {
   groupPresetRoutes,
   resolvePresetRoute,
   resolvePresetRouteType,
+  PresetCatalog,
   PresetGroup,
   PresetRoute,
   ResolvedPresetRoute,
 } from "../../lib/presets";
+import type { CatalogFragment } from "../../gtfs";
 import { ROUTE_TYPE_DEFAULTS } from "../../lib/lineKinds";
 import { MergeStationsModal } from "./MergeStationsModal";
 
@@ -30,6 +32,36 @@ function matchesQuery(route: PresetRoute, group: PresetGroup | null, query: stri
   return haystack.includes(query);
 }
 
+/** Overlay pasted GTFS feeds onto the base catalog, deduping groups by id. */
+function mergeFragments(catalog: PresetCatalog, fragments: CatalogFragment[]): PresetCatalog {
+  if (fragments.length === 0) {
+    return catalog;
+  }
+  const groups = [...catalog.groups];
+  const seen = new Set(groups.map((g) => g.id));
+  const stops = [...catalog.stops];
+  const routes = [...catalog.routes];
+  for (const fragment of fragments) {
+    for (const group of fragment.groups) {
+      if (!seen.has(group.id)) {
+        seen.add(group.id);
+        groups.push(group);
+      }
+    }
+    stops.push(...fragment.stops);
+    routes.push(...fragment.routes);
+  }
+  return { ...catalog, groups, stops, routes };
+}
+
+function importErrorMessage(cause: unknown): string {
+  // A cross-origin or offline fetch rejects with a TypeError and no HTTP status.
+  if (cause instanceof TypeError) {
+    return "Couldn't download that feed — the host may block browser requests (CORS), or the URL is wrong.";
+  }
+  return cause instanceof Error ? cause.message : "Couldn't import that feed.";
+}
+
 export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { state, dispatch } = useMapData();
   const { presetGroups } = useEditorConfig();
@@ -39,6 +71,13 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
   // opened set (rather than the closed set) keeps "collapsed by default" correct
   // even though the catalog can arrive asynchronously, after this state inits.
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  // Feeds the user pasted in ("paste a GTFS link"), overlaid on the catalog.
+  const [pastedFeeds, setPastedFeeds] = useState<CatalogFragment[]>([]);
+  const [importUrl, setImportUrl] = useState("");
+  const [importState, setImportState] = useState<{ loading: boolean; error: string | null }>({
+    loading: false,
+    error: null,
+  });
   const [pending, setPending] = useState<{
     preset: ResolvedPresetRoute;
     candidates: StationMergeCandidate[];
@@ -51,17 +90,31 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
     }
   }, [open, ensureLoaded]);
 
-  // A host can restrict which networks are offered (e.g. Amtrak only).
-  // Undefined shows everything; an empty allowlist shows nothing.
+  // The catalog plus any pasted feeds — the source the picker renders and adds from.
+  const mergedCatalog = useMemo(
+    () => (catalog ? mergeFragments(catalog, pastedFeeds) : null),
+    [catalog, pastedFeeds]
+  );
+  // Pasted networks bypass a host's `presetGroups` allowlist — the user asked for them.
+  const pastedGroupIds = useMemo(
+    () => new Set(pastedFeeds.flatMap((f) => f.groups.map((g) => g.id))),
+    [pastedFeeds]
+  );
+
+  // A host can restrict which networks are offered (e.g. Amtrak only). Undefined
+  // shows everything; an empty allowlist shows nothing (bar pasted feeds).
   const grouped = useMemo(() => {
-    if (!catalog) {
+    if (!mergedCatalog) {
       return [];
     }
     const routes = presetGroups
-      ? catalog.routes.filter((r) => r.groupId != null && presetGroups.includes(r.groupId))
-      : catalog.routes;
-    return groupPresetRoutes(routes, catalog.groups);
-  }, [catalog, presetGroups]);
+      ? mergedCatalog.routes.filter(
+          (r) =>
+            r.groupId != null && (presetGroups.includes(r.groupId) || pastedGroupIds.has(r.groupId))
+        )
+      : mergedCatalog.routes;
+    return groupPresetRoutes(routes, mergedCatalog.groups);
+  }, [mergedCatalog, presetGroups, pastedGroupIds]);
 
   const q = query.trim().toLowerCase();
   const filtered = grouped
@@ -70,6 +123,18 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
       routes: routes.filter((route) => matchesQuery(route, group, q)),
     }))
     .filter((section) => section.routes.length > 0);
+
+  // Expand the first network by default (Amtrak in the bundled catalog) so the
+  // picker opens showing routes, not just collapsed headers. Seeded once, and
+  // only while the user hasn't opened anything themselves.
+  const didSeedExpand = useRef(false);
+  useEffect(() => {
+    if (didSeedExpand.current || grouped.length === 0) {
+      return;
+    }
+    didSeedExpand.current = true;
+    setExpanded((prev) => (prev.size > 0 ? prev : new Set([groupKey(grouped[0].group)])));
+  }, [grouped]);
 
   function toggle(key: string) {
     setExpanded((prev) => {
@@ -83,12 +148,42 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
     });
   }
 
+  async function importFeed() {
+    const url = importUrl.trim();
+    if (!url || importState.loading) {
+      return;
+    }
+    setImportState({ loading: true, error: null });
+    try {
+      // Lazy-load the GTFS parser (fflate + csv-parse) only when actually used,
+      // so it stays out of the editor's initial bundle.
+      const { fetchGtfsCatalog } = await import("../../gtfs");
+      const fragment = await fetchGtfsCatalog(url, { idPrefix: `pasted-${pastedFeeds.length + 1}` });
+      if (fragment.routes.length === 0) {
+        throw new Error("No routes the editor can use were found in that feed.");
+      }
+      setPastedFeeds((prev) => [...prev, fragment]);
+      // Reveal the newly added network(s) immediately.
+      setExpanded((prev) => {
+        const next = new Set(prev);
+        for (const group of fragment.groups) {
+          next.add(group.id);
+        }
+        return next;
+      });
+      setImportUrl("");
+      setImportState({ loading: false, error: null });
+    } catch (cause) {
+      setImportState({ loading: false, error: importErrorMessage(cause) });
+    }
+  }
+
   function selectPreset(preset: PresetRoute, group: PresetGroup | null) {
-    if (!catalog) {
+    if (!mergedCatalog) {
       return;
     }
     const resolved: ResolvedPresetRoute = {
-      ...resolvePresetRoute(catalog, preset),
+      ...resolvePresetRoute(mergedCatalog, preset),
       routeType: resolvePresetRouteType(preset, group),
     };
     const candidates = findPresetMergeCandidates(state.data.stops, resolved.stops);
@@ -147,6 +242,45 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
             aria-label="Search networks and routes"
             className="w-full rounded-md border border-neutral-300 bg-transparent py-1.5 pl-8 pr-2 text-sm outline-none placeholder:text-neutral-400 focus:border-neutral-500 dark:border-neutral-700 dark:focus:border-neutral-400"
           />
+        </div>
+      )}
+
+      {status === "ready" && (
+        <div className="mb-3">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Link2
+                size={14}
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400"
+              />
+              <input
+                type="url"
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void importFeed();
+                  }
+                }}
+                placeholder="Paste a GTFS feed (.zip) URL"
+                aria-label="Paste a GTFS feed URL"
+                className="w-full rounded-md border border-neutral-300 bg-transparent py-1.5 pl-8 pr-2 text-sm outline-none placeholder:text-neutral-400 focus:border-neutral-500 dark:border-neutral-700 dark:focus:border-neutral-400"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => void importFeed()}
+              disabled={!importUrl.trim() || importState.loading}
+              className="flex shrink-0 items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            >
+              {importState.loading && <Loader2 size={14} className="animate-spin" />}
+              {importState.loading ? "Fetching…" : "Fetch"}
+            </button>
+          </div>
+          {importState.error && (
+            <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{importState.error}</p>
+          )}
         </div>
       )}
 

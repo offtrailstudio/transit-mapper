@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { zipSync, strToU8 } from "fflate";
 import { EditorConfigProvider, type EditorConfig } from "../../context/ConfigContext";
 import { MapDataProvider, useMapData } from "../../context/MapDataContext";
 import type { PresetCatalog, PresetSource } from "../../lib/presets";
@@ -45,13 +46,66 @@ function setup(config: EditorConfig = {}, presets?: PresetSource) {
   );
 }
 
-describe("PresetRoutesModal", () => {
-  it("collapses networks by default and expands one on click", async () => {
-    setup();
-    expect(screen.queryByRole("button", { name: /Acela/ })).not.toBeInTheDocument();
+const GTFS_ZIP = zipSync({
+  "agency.txt": strToU8("agency_id,agency_name\nBART,Bay Area Rapid Transit\n"),
+  "routes.txt": strToU8("route_id,route_type,route_long_name\nRED,1,Richmond Line\n"),
+  "trips.txt": strToU8("route_id,trip_id\nRED,t1\n"),
+  "stops.txt": strToU8(
+    "stop_id,stop_name,stop_lat,stop_lon\nRICH,Richmond,37.94,-122.35\nMONT,Montgomery,37.79,-122.40\n"
+  ),
+  "stop_times.txt": strToU8("trip_id,stop_id,stop_sequence\nt1,RICH,1\nt1,MONT,2\n"),
+});
 
-    await userEvent.click(screen.getByRole("button", { name: /Amtrak/ }));
-    expect(screen.getByRole("button", { name: /Acela/ })).toBeInTheDocument();
+describe("PresetRoutesModal", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("expands the first network by default and keeps later ones collapsed", async () => {
+    setup();
+    // Amtrak (the first network) is open by default...
+    expect(await screen.findByRole("button", { name: /Acela/ })).toBeInTheDocument();
+    // ...but a later network stays collapsed until clicked.
+    expect(screen.queryByRole("button", { name: /New Haven Line/ })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Metro-North/ }));
+    expect(screen.getByRole("button", { name: /New Haven Line/ })).toBeInTheDocument();
+  });
+
+  it("imports and offers routes from a pasted GTFS feed URL", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        arrayBuffer: async () => GTFS_ZIP.buffer,
+      }))
+    );
+    setup();
+
+    await userEvent.type(
+      screen.getByLabelText(/Paste a GTFS feed URL/),
+      "https://example.com/bart.zip"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Fetch" }));
+
+    // The pasted network's route becomes selectable (its group auto-expands).
+    expect(await screen.findByRole("button", { name: /Richmond Line/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Richmond Line/ }));
+    expect(screen.getByTestId("routes")).toHaveTextContent("Richmond Line:subway");
+  });
+
+  it("surfaces an import error for a feed that can't be fetched", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 404, statusText: "Not Found" }))
+    );
+    setup();
+
+    await userEvent.type(screen.getByLabelText(/Paste a GTFS feed URL/), "https://example.com/x.zip");
+    await userEvent.click(screen.getByRole("button", { name: "Fetch" }));
+
+    expect(await screen.findByText(/404/)).toBeInTheDocument();
   });
 
   it("searches across every network without needing to expand groups", async () => {
@@ -71,8 +125,11 @@ describe("PresetRoutesModal", () => {
 
   it("only offers networks allowed by the host config", async () => {
     setup({ presetGroups: ["amtrak"] });
-    expect(screen.getByRole("button", { name: /Amtrak/ })).toBeInTheDocument();
+    // Amtrak is offered (its routes are visible via the default expand)...
+    expect(await screen.findByRole("button", { name: /Northeast Regional/ })).toBeInTheDocument();
+    // ...Metro-North is filtered out entirely.
     expect(screen.queryByRole("button", { name: /Metro-North/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /New Haven Line/ })).not.toBeInTheDocument();
   });
 
   it("adds a selected route with its resolved transit mode", async () => {
