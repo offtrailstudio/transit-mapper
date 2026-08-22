@@ -2,7 +2,7 @@
  * Server/build-time GTFS ingest — the `@offtrailstudio/transit-mapper/gtfs`
  * entry point. The host (which holds the Mobility Database refresh token, just
  * as it holds the Mapbox token) calls {@link assembleCatalog} to build a
- * validated `PresetCatalog` from live feeds, then serves/injects that JSON into
+ * validated `RouteCatalog` from live feeds, then serves/injects that JSON into
  * the editor via `MapDataProvider`'s `presets` prop.
  *
  * This module is intentionally kept out of the browser entry (`.`): it depends

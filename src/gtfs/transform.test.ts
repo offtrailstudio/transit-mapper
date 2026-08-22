@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validatePresetCatalog, PRESET_SCHEMA_VERSION } from "../lib/presets";
+import { validateRouteCatalog, ROUTE_CATALOG_SCHEMA_VERSION } from "../lib/presets";
 import type { GtfsTables } from "./parse";
 import { transformGtfs } from "./transform";
 
@@ -120,7 +120,7 @@ describe("transformGtfs", () => {
   it("produces a fragment that passes catalog validation", () => {
     const fragment = transformGtfs(fixture(), { idPrefix: "mnr" });
     expect(() =>
-      validatePresetCatalog({ schemaVersion: PRESET_SCHEMA_VERSION, ...fragment })
+      validateRouteCatalog({ schemaVersion: ROUTE_CATALOG_SCHEMA_VERSION, ...fragment })
     ).not.toThrow();
   });
 });

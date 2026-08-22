@@ -2,7 +2,7 @@ import { nextRouteColor } from "./colors";
 import { DEFAULT_ROUTE_TYPE, defaultHeadwayForRouteType, defaultRouteTypes } from "./lineKinds";
 import { primaryStopIds, updatePrimaryStopIds } from "./lines";
 import { normalizeMapData } from "./migrate";
-import { ResolvedPresetRoute } from "./presets/catalog";
+import { ResolvedRoute } from "./presets/catalog";
 import { EMPTY_MAP_DATA, Route, RouteType, Stop, TransitMapData } from "./types";
 
 export type EditorState = {
@@ -18,7 +18,7 @@ export const initialEditorState: EditorState = {
 export type Action =
   | { type: "LOAD"; data: TransitMapData }
   | { type: "ADD_ROUTE" }
-  | { type: "ADD_PRESET_ROUTE"; preset: ResolvedPresetRoute; merges?: Record<number, string> }
+  | { type: "ADD_CATALOG_ROUTE"; preset: ResolvedRoute; merges?: Record<number, string> }
   | { type: "ADD_STOP"; lng: number; lat: number; name?: string; routeId?: string }
   | { type: "ADD_STOP_TO_ROUTE"; routeId: string; stopId: string }
   | { type: "REORDER_STOP"; routeId: string; index: number; direction: "up" | "down" }
@@ -71,7 +71,7 @@ export function mapReducer(state: EditorState, action: Action): EditorState {
       };
     }
 
-    case "ADD_PRESET_ROUTE": {
+    case "ADD_CATALOG_ROUTE": {
       const merges = action.merges ?? {};
       const existingIds = new Set(state.data.stops.map((p) => p.id));
       // A stop with a valid merge target reuses that station's id instead of

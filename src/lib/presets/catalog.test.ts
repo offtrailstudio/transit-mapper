@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createRemotePresetLoader,
-  PRESET_SCHEMA_VERSION,
-  resolvePresetRoute,
-  validatePresetCatalog,
+  ROUTE_CATALOG_SCHEMA_VERSION,
+  resolveCatalogRoute,
+  validateRouteCatalog,
 } from "./catalog";
-import { DEFAULT_PRESET_CATALOG } from "./index";
+import { BUNDLED_ROUTE_CATALOG } from "./index";
 
 const VALID = {
-  schemaVersion: PRESET_SCHEMA_VERSION,
+  schemaVersion: ROUTE_CATALOG_SCHEMA_VERSION,
   groups: [{ id: "amtrak", name: "Amtrak" }],
   stops: [
     { id: "s1", name: "A", lng: -73, lat: 41 },
@@ -24,32 +24,32 @@ const VALID = {
   ],
 };
 
-describe("validatePresetCatalog", () => {
+describe("validateRouteCatalog", () => {
   it("accepts a well-formed v2 catalog and returns it typed", () => {
-    expect(validatePresetCatalog(VALID)).toBe(VALID);
-    expect(validatePresetCatalog(DEFAULT_PRESET_CATALOG)).toBe(DEFAULT_PRESET_CATALOG);
+    expect(validateRouteCatalog(VALID)).toBe(VALID);
+    expect(validateRouteCatalog(BUNDLED_ROUTE_CATALOG)).toBe(BUNDLED_ROUTE_CATALOG);
   });
 
   it("rejects a mismatched schemaVersion", () => {
-    expect(() => validatePresetCatalog({ ...VALID, schemaVersion: 999 })).toThrow(/schemaVersion/);
+    expect(() => validateRouteCatalog({ ...VALID, schemaVersion: 999 })).toThrow(/schemaVersion/);
   });
 
   it("rejects non-object payloads", () => {
-    expect(() => validatePresetCatalog(null)).toThrow();
-    expect(() => validatePresetCatalog("nope")).toThrow();
+    expect(() => validateRouteCatalog(null)).toThrow();
+    expect(() => validateRouteCatalog("nope")).toThrow();
   });
 
   it("rejects missing groups/stops/routes arrays", () => {
-    expect(() => validatePresetCatalog({ schemaVersion: PRESET_SCHEMA_VERSION })).toThrow(/arrays/);
+    expect(() => validateRouteCatalog({ schemaVersion: ROUTE_CATALOG_SCHEMA_VERSION })).toThrow(/arrays/);
   });
 
   it("accepts optional version + generatedAt metadata", () => {
     const withMeta = { ...VALID, version: "2.0.0", generatedAt: "2026-08-20T00:00:00.000Z" };
-    expect(validatePresetCatalog(withMeta)).toBe(withMeta);
+    expect(validateRouteCatalog(withMeta)).toBe(withMeta);
   });
 
   it("rejects non-string version metadata", () => {
-    expect(() => validatePresetCatalog({ ...VALID, version: 14 })).toThrow(/version/);
+    expect(() => validateRouteCatalog({ ...VALID, version: 14 })).toThrow(/version/);
   });
 
   it("rejects a pattern with fewer than 2 stops", () => {
@@ -57,12 +57,12 @@ describe("validatePresetCatalog", () => {
       ...VALID,
       routes: [{ ...VALID.routes[0], patterns: [{ id: "r1:p0", stopIds: ["s1"] }] }],
     };
-    expect(() => validatePresetCatalog(bad)).toThrow(/at least 2 stops/);
+    expect(() => validateRouteCatalog(bad)).toThrow(/at least 2 stops/);
   });
 
   it("rejects a route with no patterns", () => {
     const bad = { ...VALID, routes: [{ ...VALID.routes[0], patterns: [] }] };
-    expect(() => validatePresetCatalog(bad)).toThrow(/at least 1 pattern/);
+    expect(() => validateRouteCatalog(bad)).toThrow(/at least 1 pattern/);
   });
 
   it("rejects a pattern referencing a stop not in the table", () => {
@@ -70,12 +70,12 @@ describe("validatePresetCatalog", () => {
       ...VALID,
       routes: [{ ...VALID.routes[0], patterns: [{ id: "r1:p0", stopIds: ["s1", "ghost"] }] }],
     };
-    expect(() => validatePresetCatalog(bad)).toThrow(/unknown stop "ghost"/);
+    expect(() => validateRouteCatalog(bad)).toThrow(/unknown stop "ghost"/);
   });
 
   it("rejects a routeType the editor doesn't understand", () => {
     const bad = { ...VALID, routes: [{ ...VALID.routes[0], routeType: "monorail" }] };
-    expect(() => validatePresetCatalog(bad)).toThrow(/not a known transit mode/);
+    expect(() => validateRouteCatalog(bad)).toThrow(/not a known transit mode/);
   });
 
   it("rejects a group defaultRouteType the editor doesn't understand", () => {
@@ -83,7 +83,7 @@ describe("validatePresetCatalog", () => {
       ...VALID,
       groups: [{ id: "amtrak", name: "Amtrak", defaultRouteType: "spaceship" }],
     };
-    expect(() => validatePresetCatalog(bad)).toThrow(/not a known transit mode/);
+    expect(() => validateRouteCatalog(bad)).toThrow(/not a known transit mode/);
   });
 
   it("accepts every known transit mode", () => {
@@ -92,7 +92,7 @@ describe("validatePresetCatalog", () => {
       routes: [{ ...VALID.routes[0], routeType }],
     });
     for (const mode of ["bus", "tram", "subway", "ferry", "rail", "hsr"]) {
-      expect(() => validatePresetCatalog(withMode(mode))).not.toThrow();
+      expect(() => validateRouteCatalog(withMode(mode))).not.toThrow();
     }
   });
 
@@ -104,11 +104,11 @@ describe("validatePresetCatalog", () => {
         { id: "s2", name: "B", lng: -74, lat: 42 },
       ],
     };
-    expect(() => validatePresetCatalog(bad)).toThrow(/name\/lng\/lat/);
+    expect(() => validateRouteCatalog(bad)).toThrow(/name\/lng\/lat/);
   });
 });
 
-describe("validatePresetCatalog (v1 upgrade)", () => {
+describe("validateRouteCatalog (v1 upgrade)", () => {
   const V1 = {
     schemaVersion: 1,
     groups: [{ id: "amtrak", name: "Amtrak" }],
@@ -127,8 +127,8 @@ describe("validatePresetCatalog (v1 upgrade)", () => {
   };
 
   it("upgrades a schemaVersion-1 catalog into the normalized v2 shape", () => {
-    const upgraded = validatePresetCatalog(V1);
-    expect(upgraded.schemaVersion).toBe(PRESET_SCHEMA_VERSION);
+    const upgraded = validateRouteCatalog(V1);
+    expect(upgraded.schemaVersion).toBe(ROUTE_CATALOG_SCHEMA_VERSION);
     expect(upgraded.stops).toEqual([
       { id: "r1:0", name: "A", lng: -73, lat: 41 },
       { id: "r1:1", name: "B", lng: -74, lat: 42 },
@@ -139,14 +139,14 @@ describe("validatePresetCatalog (v1 upgrade)", () => {
 
   it("still applies v1 field validation before upgrading", () => {
     const bad = { ...V1, routes: [{ ...V1.routes[0], stops: [{ name: "A", lng: -73, lat: 41 }] }] };
-    expect(() => validatePresetCatalog(bad)).toThrow(/at least 2 stops/);
+    expect(() => validateRouteCatalog(bad)).toThrow(/at least 2 stops/);
   });
 });
 
-describe("resolvePresetRoute", () => {
+describe("resolveCatalogRoute", () => {
   it("flattens a route's primary pattern against the stop table, in order", () => {
-    const [route] = validatePresetCatalog(VALID).routes;
-    const resolved = resolvePresetRoute(VALID, route);
+    const [route] = validateRouteCatalog(VALID).routes;
+    const resolved = resolveCatalogRoute(VALID, route);
     expect(resolved.stops.map((s) => s.name)).toEqual(["A", "B"]);
     expect(resolved.groupId).toBe("amtrak");
     expect("patterns" in resolved).toBe(false);

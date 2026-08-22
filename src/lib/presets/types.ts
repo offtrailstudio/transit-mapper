@@ -1,7 +1,7 @@
 import { RouteType } from "../types";
 
 /** Bump when the catalog shape changes incompatibly; loaders reject unknown versions. */
-export const PRESET_SCHEMA_VERSION = 2;
+export const ROUTE_CATALOG_SCHEMA_VERSION = 2;
 
 /**
  * A stop in the catalog's shared table — GTFS `stops.txt`. Referenced by
@@ -9,7 +9,7 @@ export const PRESET_SCHEMA_VERSION = 2;
  * routes share is one entry with one identity (as in GTFS), not two coordinates
  * that have to be re-merged by proximity later.
  */
-export type PresetStop = { id: string; name: string; lng: number; lat: number };
+export type CatalogStop = { id: string; name: string; lng: number; lat: number };
 
 /**
  * One ordered stop sequence a route runs — GTFS trip pattern. Mirrors
@@ -17,11 +17,11 @@ export type PresetStop = { id: string; name: string; lng: number; lat: number };
  * one models branches, short-turns, or direction variants. The first is primary
  * (what the picker adds).
  */
-export type PresetPattern = {
+export type CatalogPattern = {
   id: string;
   /** Optional human label for the variant (GTFS `trip_headsign`-ish), e.g. "via Airport". */
   name?: string;
-  /** Ordered `PresetStop` ids along this pattern. */
+  /** Ordered `CatalogStop` ids along this pattern. */
   stopIds: string[];
 };
 
@@ -30,7 +30,7 @@ export type PresetPattern = {
  * `color` to `route_color`. Its ordered stop sequences live in `patterns` (never
  * inline), each referencing the catalog's shared `stops` table by id.
  */
-export type PresetRoute = {
+export type CatalogRoute = {
   id: string;
   name: string;
   color?: string;
@@ -39,10 +39,10 @@ export type PresetRoute = {
   description?: string;
   groupId?: string;
   /** Stop sequences (GTFS route ⟶ trip patterns). Always ≥ 1; `patterns[0]` is primary. */
-  patterns: PresetPattern[];
+  patterns: CatalogPattern[];
 };
 
-export type PresetGroup = {
+export type RouteNetwork = {
   id: string;
   name: string;
   description?: string;

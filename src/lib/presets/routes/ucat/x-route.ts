@@ -1,6 +1,6 @@
-import { LegacyPresetRoute } from "../../legacy";
+import { LegacyRoute } from "../../legacy";
 
-export const xRoute: LegacyPresetRoute = {
+export const xRoute: LegacyRoute = {
   id: "ucat-x-route",
   name: "X Route",
   color: "#35424A",

@@ -1,14 +1,14 @@
 "use client";
 
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
-import { DEFAULT_PRESET_CATALOG, PresetCatalog, PresetSource } from "../lib/presets";
+import { BUNDLED_ROUTE_CATALOG, RouteCatalog, PresetSource } from "../lib/presets";
 
 type PresetsStatus = "loading" | "ready" | "error";
 
 type PresetsContextValue = {
   status: PresetsStatus;
   /** The resolved catalog, or null while an async source is still loading/errored. */
-  catalog: PresetCatalog | null;
+  catalog: RouteCatalog | null;
   error: Error | null;
   /** Kick off the async load (idempotent). Call when the picker becomes visible. */
   ensureLoaded: () => void;
@@ -20,7 +20,7 @@ type PresetsContextValue = {
 // outside a PresetsProvider (or in the read-only shared view) still works.
 const PresetsContext = createContext<PresetsContextValue>({
   status: "ready",
-  catalog: DEFAULT_PRESET_CATALOG,
+  catalog: BUNDLED_ROUTE_CATALOG,
   error: null,
   ensureLoaded: () => {},
   reload: () => {},
@@ -28,7 +28,7 @@ const PresetsContext = createContext<PresetsContextValue>({
 
 type State =
   | { status: "loading"; catalog: null; error: null }
-  | { status: "ready"; catalog: PresetCatalog; error: null }
+  | { status: "ready"; catalog: RouteCatalog; error: null }
   | { status: "error"; catalog: null; error: Error };
 
 function toError(cause: unknown): Error {
@@ -57,7 +57,7 @@ export function PresetsProvider({
   const [state, setState] = useState<State>(() =>
     isLoader
       ? { status: "loading", catalog: null, error: null }
-      : { status: "ready", catalog: (source as PresetCatalog) ?? DEFAULT_PRESET_CATALOG, error: null }
+      : { status: "ready", catalog: (source as RouteCatalog) ?? BUNDLED_ROUTE_CATALOG, error: null }
   );
 
   const ensureLoaded = useCallback(() => {
@@ -65,7 +65,7 @@ export function PresetsProvider({
       return;
     }
     startedRef.current = true;
-    const load = sourceRef.current as () => PresetCatalog | Promise<PresetCatalog>;
+    const load = sourceRef.current as () => RouteCatalog | Promise<RouteCatalog>;
     setState({ status: "loading", catalog: null, error: null });
     Promise.resolve()
       .then(load)

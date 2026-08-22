@@ -1,6 +1,6 @@
-import { LegacyPresetRoute } from "../../legacy";
+import { LegacyRoute } from "../../legacy";
 
-export const ksRoute: LegacyPresetRoute = {
+export const ksRoute: LegacyRoute = {
   id: "ucat-ks-route",
   name: "KS Route",
   color: "#17A398",

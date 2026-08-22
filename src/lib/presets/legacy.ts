@@ -1,7 +1,7 @@
 import { ROUTE_TYPES } from "../lineKinds";
 import { RouteType } from "../types";
-import { PresetGroup, PresetRoute, PresetStop, PRESET_SCHEMA_VERSION } from "./types";
-import type { PresetCatalog } from "./catalog";
+import { RouteNetwork, CatalogRoute, CatalogStop, ROUTE_CATALOG_SCHEMA_VERSION } from "./types";
+import type { RouteCatalog } from "./catalog";
 
 /**
  * The flat, denormalized authoring shape that predates the normalized v2 catalog
@@ -10,21 +10,21 @@ import type { PresetCatalog } from "./catalog";
  * patterns. It's ergonomic to hand-write, so it survives as the *authoring*
  * format for the bundled fallback — {@link upgradeLegacyCatalog} lifts it to v2.
  */
-export type LegacyPresetStop = { name: string; lng: number; lat: number };
+export type LegacyStop = { name: string; lng: number; lat: number };
 
-export type LegacyPresetRoute = {
+export type LegacyRoute = {
   id: string;
   name: string;
   color?: string;
   routeType?: RouteType;
   description?: string;
   groupId?: string;
-  stops: LegacyPresetStop[];
+  stops: LegacyStop[];
 };
 
-export type LegacyPresetCatalog = {
-  groups: PresetGroup[];
-  routes: LegacyPresetRoute[];
+export type LegacyRouteCatalog = {
+  groups: RouteNetwork[];
+  routes: LegacyRoute[];
 };
 
 function assertRouteType(value: unknown, label: string): void {
@@ -39,11 +39,11 @@ function assertRouteType(value: unknown, label: string): void {
 }
 
 /**
- * Validate an untrusted schemaVersion-1 payload into a {@link LegacyPresetCatalog}.
+ * Validate an untrusted schemaVersion-1 payload into a {@link LegacyRouteCatalog}.
  * Kept so a v1 catalog pinned by a host still loads: the validator upgrades it to
  * v2 after these checks pass.
  */
-export function validateLegacyCatalog(raw: Record<string, unknown>): LegacyPresetCatalog {
+export function validateLegacyCatalog(raw: Record<string, unknown>): LegacyRouteCatalog {
   if (!Array.isArray(raw.groups) || !Array.isArray(raw.routes)) {
     throw new Error("Preset catalog needs `groups` and `routes` arrays");
   }
@@ -70,20 +70,20 @@ export function validateLegacyCatalog(raw: Record<string, unknown>): LegacyPrese
       }
     }
   }
-  return raw as unknown as LegacyPresetCatalog;
+  return raw as unknown as LegacyRouteCatalog;
 }
 
 /**
  * Lift the flat legacy shape into a normalized v2 catalog: each legacy stop
- * becomes a `PresetStop` in the shared table (id = `${routeId}:${index}`, so the
+ * becomes a `CatalogStop` in the shared table (id = `${routeId}:${index}`, so the
  * build is deterministic and reproducible) and each route gets a single primary
  * pattern referencing those ids. Deliberately does *no* cross-route dedup —
  * identity-based sharing is a property of authoritative GTFS `stop_id`s, not
  * something to infer from coordinates here; the runtime still proximity-merges
  * against the user's own map when a legacy-derived route is added.
  */
-export function upgradeLegacyCatalog(legacy: LegacyPresetCatalog): PresetCatalog {
-  const stops: PresetStop[] = [];
+export function upgradeLegacyCatalog(legacy: LegacyRouteCatalog): RouteCatalog {
+  const stops: CatalogStop[] = [];
   const routes = legacy.routes.map((route) => {
     const stopIds = route.stops.map((stop, index) => {
       const id = `${route.id}:${index}`;
@@ -91,11 +91,11 @@ export function upgradeLegacyCatalog(legacy: LegacyPresetCatalog): PresetCatalog
       return id;
     });
     const { stops: _stops, ...rest } = route;
-    return { ...rest, patterns: [{ id: `${route.id}:p0`, stopIds }] } satisfies PresetRoute;
+    return { ...rest, patterns: [{ id: `${route.id}:p0`, stopIds }] } satisfies CatalogRoute;
   });
 
   return {
-    schemaVersion: PRESET_SCHEMA_VERSION,
+    schemaVersion: ROUTE_CATALOG_SCHEMA_VERSION,
     groups: legacy.groups,
     stops,
     routes,

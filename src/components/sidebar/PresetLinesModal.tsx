@@ -6,25 +6,25 @@ import { Modal } from "../Modal";
 import { useMapData } from "../../context/MapDataContext";
 import { useEditorConfig } from "../../context/ConfigContext";
 import { usePresets } from "../../context/PresetsContext";
-import { findPresetMergeCandidates, StationMergeCandidate } from "../../lib/presetMerge";
+import { findRouteMergeCandidates, StationMergeCandidate } from "../../lib/presetMerge";
 import {
-  groupPresetRoutes,
-  resolvePresetRoute,
-  resolvePresetRouteType,
-  PresetCatalog,
-  PresetGroup,
-  PresetRoute,
-  ResolvedPresetRoute,
+  groupRoutesByNetwork,
+  resolveCatalogRoute,
+  resolveRouteMode,
+  RouteCatalog,
+  RouteNetwork,
+  CatalogRoute,
+  ResolvedRoute,
 } from "../../lib/presets";
 import type { CatalogFragment } from "../../gtfs";
 import { ROUTE_TYPE_DEFAULTS } from "../../lib/lineKinds";
 import { MergeStationsModal } from "./MergeStationsModal";
 
-function groupKey(group: PresetGroup | null): string {
+function groupKey(group: RouteNetwork | null): string {
   return group?.id ?? "ungrouped";
 }
 
-function matchesQuery(route: PresetRoute, group: PresetGroup | null, query: string): boolean {
+function matchesQuery(route: CatalogRoute, group: RouteNetwork | null, query: string): boolean {
   if (!query) {
     return true;
   }
@@ -33,7 +33,7 @@ function matchesQuery(route: PresetRoute, group: PresetGroup | null, query: stri
 }
 
 /** Overlay pasted GTFS feeds onto the base catalog, deduping groups by id. */
-function mergeFragments(catalog: PresetCatalog, fragments: CatalogFragment[]): PresetCatalog {
+function mergeFragments(catalog: RouteCatalog, fragments: CatalogFragment[]): RouteCatalog {
   if (fragments.length === 0) {
     return catalog;
   }
@@ -79,7 +79,7 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
     error: null,
   });
   const [pending, setPending] = useState<{
-    preset: ResolvedPresetRoute;
+    preset: ResolvedRoute;
     candidates: StationMergeCandidate[];
   } | null>(null);
 
@@ -113,7 +113,7 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
             r.groupId != null && (presetGroups.includes(r.groupId) || pastedGroupIds.has(r.groupId))
         )
       : mergedCatalog.routes;
-    return groupPresetRoutes(routes, mergedCatalog.groups);
+    return groupRoutesByNetwork(routes, mergedCatalog.groups);
   }, [mergedCatalog, presetGroups, pastedGroupIds]);
 
   const q = query.trim().toLowerCase();
@@ -178,17 +178,17 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
     }
   }
 
-  function selectPreset(preset: PresetRoute, group: PresetGroup | null) {
+  function selectPreset(preset: CatalogRoute, group: RouteNetwork | null) {
     if (!mergedCatalog) {
       return;
     }
-    const resolved: ResolvedPresetRoute = {
-      ...resolvePresetRoute(mergedCatalog, preset),
-      routeType: resolvePresetRouteType(preset, group),
+    const resolved: ResolvedRoute = {
+      ...resolveCatalogRoute(mergedCatalog, preset),
+      routeType: resolveRouteMode(preset, group),
     };
-    const candidates = findPresetMergeCandidates(state.data.stops, resolved.stops);
+    const candidates = findRouteMergeCandidates(state.data.stops, resolved.stops);
     if (candidates.length === 0) {
-      dispatch({ type: "ADD_PRESET_ROUTE", preset: resolved });
+      dispatch({ type: "ADD_CATALOG_ROUTE", preset: resolved });
       onClose();
       return;
     }
@@ -199,7 +199,7 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
     if (!pending) {
       return;
     }
-    dispatch({ type: "ADD_PRESET_ROUTE", preset: pending.preset, merges });
+    dispatch({ type: "ADD_CATALOG_ROUTE", preset: pending.preset, merges });
     setPending(null);
     onClose();
   }
@@ -335,7 +335,7 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
                 {isOpen && (
                   <ul className="mt-1 space-y-1.5">
                     {routes.map((preset) => {
-                      const routeType = resolvePresetRouteType(preset, group);
+                      const routeType = resolveRouteMode(preset, group);
                       return (
                         <li key={preset.id}>
                           <button

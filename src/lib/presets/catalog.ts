@@ -1,8 +1,8 @@
 import { ROUTE_TYPES } from "../lineKinds";
-import { PresetGroup, PresetRoute, PresetStop, PRESET_SCHEMA_VERSION } from "./types";
+import { RouteNetwork, CatalogRoute, CatalogStop, ROUTE_CATALOG_SCHEMA_VERSION } from "./types";
 import { upgradeLegacyCatalog, validateLegacyCatalog } from "./legacy";
 
-export { PRESET_SCHEMA_VERSION };
+export { ROUTE_CATALOG_SCHEMA_VERSION };
 
 /**
  * A self-contained, normalized snapshot of the preset catalog — what the "Add a
@@ -14,7 +14,7 @@ export { PRESET_SCHEMA_VERSION };
  * one) and updates it without shipping a new package. `schemaVersion` lets the
  * editor reject — or, for the previous shape, upgrade — a payload it's handed.
  */
-export type PresetCatalog = {
+export type RouteCatalog = {
   schemaVersion: number;
   /**
    * Semver of the *content* (distinct from `schemaVersion`, which versions the
@@ -24,17 +24,17 @@ export type PresetCatalog = {
   version?: string;
   /** ISO-8601 timestamp of when this snapshot was built. Publish-time metadata. */
   generatedAt?: string;
-  groups: PresetGroup[];
+  groups: RouteNetwork[];
   /** Shared stop table (GTFS `stops.txt`); patterns reference these by id. */
-  stops: PresetStop[];
-  routes: PresetRoute[];
+  stops: CatalogStop[];
+  routes: CatalogRoute[];
 };
 
 /**
  * The small companion file published next to a catalog so a pinned consumer can
  * *detect* (not silently apply) that a newer catalog exists and surface it.
  */
-export type PresetManifest = {
+export type RouteCatalogManifest = {
   latestVersion: string;
   schemaVersion: number;
   publishedAt: string;
@@ -47,7 +47,7 @@ export type PresetManifest = {
  * loader called lazily the first time the modal opens. Read once — like
  * `MapDataProvider`'s `loadInitial`, its identity needn't be stable.
  */
-export type PresetSource = PresetCatalog | (() => PresetCatalog | Promise<PresetCatalog>);
+export type PresetSource = RouteCatalog | (() => RouteCatalog | Promise<RouteCatalog>);
 
 /**
  * A route flattened for *application to a map*: its primary pattern resolved
@@ -55,14 +55,14 @@ export type PresetSource = PresetCatalog | (() => PresetCatalog | Promise<Preset
  * and reducer work on this — a route is added as a single sequence of stations,
  * matching the platform's "editing targets the first pattern" convention.
  */
-export type ResolvedPresetRoute = {
+export type ResolvedRoute = {
   id: string;
   name: string;
   color?: string;
   routeType?: import("../types").RouteType;
   description?: string;
   groupId?: string;
-  stops: PresetStop[];
+  stops: CatalogStop[];
 };
 
 function assertRouteType(value: unknown, label: string): void {
@@ -76,7 +76,7 @@ function assertRouteType(value: unknown, label: string): void {
   }
 }
 
-function validateV2(catalog: Record<string, unknown>): PresetCatalog {
+function validateV2(catalog: Record<string, unknown>): RouteCatalog {
   if (catalog.version !== undefined && typeof catalog.version !== "string") {
     throw new Error("Preset catalog `version`, if present, must be a string");
   }
@@ -138,17 +138,17 @@ function validateV2(catalog: Record<string, unknown>): PresetCatalog {
     }
   }
 
-  return catalog as unknown as PresetCatalog;
+  return catalog as unknown as RouteCatalog;
 }
 
 /**
  * Validate an untrusted payload (e.g. parsed remote JSON) into a v2
- * {@link PresetCatalog}, throwing a descriptive error on anything malformed. A
+ * {@link RouteCatalog}, throwing a descriptive error on anything malformed. A
  * schemaVersion-1 payload is validated in its old shape and *upgraded* to v2, so
  * a catalog pinned before the schema bump keeps loading. Any other version is
  * rejected rather than silently breaking the editor.
  */
-export function validatePresetCatalog(raw: unknown): PresetCatalog {
+export function validateRouteCatalog(raw: unknown): RouteCatalog {
   if (!raw || typeof raw !== "object") {
     throw new Error("Preset catalog must be an object");
   }
@@ -156,11 +156,11 @@ export function validatePresetCatalog(raw: unknown): PresetCatalog {
   if (catalog.schemaVersion === 1) {
     return upgradeLegacyCatalog(validateLegacyCatalog(catalog));
   }
-  if (catalog.schemaVersion === PRESET_SCHEMA_VERSION) {
+  if (catalog.schemaVersion === ROUTE_CATALOG_SCHEMA_VERSION) {
     return validateV2(catalog);
   }
   throw new Error(
-    `Unsupported preset schemaVersion ${String(catalog.schemaVersion)}; expected ${PRESET_SCHEMA_VERSION}`
+    `Unsupported preset schemaVersion ${String(catalog.schemaVersion)}; expected ${ROUTE_CATALOG_SCHEMA_VERSION}`
   );
 }
 
@@ -169,12 +169,12 @@ export function validatePresetCatalog(raw: unknown): PresetCatalog {
  * the form the picker and reducer add to a map. Stop ids the table doesn't
  * contain are dropped (the validator guarantees they don't exist post-load).
  */
-export function resolvePresetRoute(catalog: PresetCatalog, route: PresetRoute): ResolvedPresetRoute {
+export function resolveCatalogRoute(catalog: RouteCatalog, route: CatalogRoute): ResolvedRoute {
   const byId = new Map(catalog.stops.map((stop) => [stop.id, stop]));
   const primary = route.patterns[0];
   const stops = (primary?.stopIds ?? [])
     .map((id) => byId.get(id))
-    .filter((stop): stop is PresetStop => stop !== undefined);
+    .filter((stop): stop is CatalogStop => stop !== undefined);
   const { patterns: _patterns, ...rest } = route;
   return { ...rest, stops };
 }
@@ -187,12 +187,12 @@ export function resolvePresetRoute(catalog: PresetCatalog, route: PresetRoute): 
 export function createRemotePresetLoader(
   url: string,
   init?: RequestInit
-): () => Promise<PresetCatalog> {
+): () => Promise<RouteCatalog> {
   return async () => {
     const res = await fetch(url, init);
     if (!res.ok) {
       throw new Error(`Failed to load presets (${res.status} ${res.statusText})`);
     }
-    return validatePresetCatalog(await res.json());
+    return validateRouteCatalog(await res.json());
   };
 }

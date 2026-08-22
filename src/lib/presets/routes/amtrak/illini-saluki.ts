@@ -1,6 +1,6 @@
-import { LegacyPresetRoute } from "../../legacy";
+import { LegacyRoute } from "../../legacy";
 
-export const illiniSaluki: LegacyPresetRoute = {
+export const illiniSaluki: LegacyRoute = {
   id: "amtrak-illini-saluki",
   name: "Illini/Saluki",
   groupId: "amtrak",

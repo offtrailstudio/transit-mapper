@@ -1,6 +1,6 @@
-import { LegacyPresetRoute } from "../../legacy";
+import { LegacyRoute } from "../../legacy";
 
-export const dutchessRouteF: LegacyPresetRoute = {
+export const dutchessRouteF: LegacyRoute = {
   id: "dcpt-route-f",
   name: "Route F",
   color: "#00AEEF",

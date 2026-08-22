@@ -1,6 +1,6 @@
-import { LegacyPresetRoute } from "../../legacy";
+import { LegacyRoute } from "../../legacy";
 
-export const empireBuilder: LegacyPresetRoute = {
+export const empireBuilder: LegacyRoute = {
   id: "amtrak-empire-builder",
   name: "Empire Builder",
   groupId: "amtrak",

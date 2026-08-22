@@ -23,7 +23,7 @@ export type StationMergeCandidate = {
  * stations. Matching is by proximity, not name, mirroring how the geometry
  * layer already decides two stops are the same station.
  */
-export function findPresetMergeCandidates(
+export function findRouteMergeCandidates(
   existingStops: Stop[],
   stops: MergeStop[],
   thresholdMeters: number = STATION_MERGE_METERS

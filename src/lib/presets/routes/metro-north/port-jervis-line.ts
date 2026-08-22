@@ -1,6 +1,6 @@
-import { LegacyPresetRoute } from "../../legacy";
+import { LegacyRoute } from "../../legacy";
 
-export const portJervisLine: LegacyPresetRoute = {
+export const portJervisLine: LegacyRoute = {
   id: "mnr-port-jervis-line",
   name: "Port Jervis Line",
   color: "#FF7900",

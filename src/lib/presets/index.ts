@@ -1,6 +1,6 @@
-import { PRESET_GROUPS } from "./groups";
-import { PresetCatalog } from "./catalog";
-import { LegacyPresetRoute, upgradeLegacyCatalog } from "./legacy";
+import { BUNDLED_NETWORKS } from "./groups";
+import { RouteCatalog } from "./catalog";
+import { LegacyRoute, upgradeLegacyCatalog } from "./legacy";
 import { northeastRegional } from "./routes/amtrak/northeast-regional";
 import { acela } from "./routes/amtrak/acela";
 import { keystoneService } from "./routes/amtrak/keystone-service";
@@ -66,7 +66,7 @@ import { dutchessRouteE } from "./routes/dutchess-county/route-e";
 import { dutchessRouteF } from "./routes/dutchess-county/route-f";
 import { dutchessRouteG } from "./routes/dutchess-county/route-g";
 
-export const PRESET_LINES: LegacyPresetRoute[] = [
+export const BUNDLED_ROUTES: LegacyRoute[] = [
   northeastRegional,
   acela,
   keystoneService,
@@ -140,9 +140,9 @@ export const PRESET_LINES: LegacyPresetRoute[] = [
  * catalog at assembly time. Hosts that expect frequent changes should serve
  * their own catalog (see `createRemotePresetLoader`) instead of relying on this.
  */
-export const DEFAULT_PRESET_CATALOG: PresetCatalog = upgradeLegacyCatalog({
-  groups: PRESET_GROUPS,
-  routes: PRESET_LINES,
+export const BUNDLED_ROUTE_CATALOG: RouteCatalog = upgradeLegacyCatalog({
+  groups: BUNDLED_NETWORKS,
+  routes: BUNDLED_ROUTES,
 });
 
 export * from "./types";

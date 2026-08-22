@@ -1,7 +1,7 @@
 /**
  * Emits the hostable preset artifacts:
  *
- *   catalog-dist/presets.v<schema>.json  — the full, validated PresetCatalog
+ *   catalog-dist/presets.v<schema>.json  — the full, validated RouteCatalog
  *   catalog-dist/manifest.json           — latest version + schema + summary
  *
  * Source of the catalog, in order of preference:
@@ -18,11 +18,11 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
-  DEFAULT_PRESET_CATALOG,
-  PRESET_SCHEMA_VERSION,
-  validatePresetCatalog,
-  type PresetCatalog,
-  type PresetManifest,
+  BUNDLED_ROUTE_CATALOG,
+  ROUTE_CATALOG_SCHEMA_VERSION,
+  validateRouteCatalog,
+  type RouteCatalog,
+  type RouteCatalogManifest,
 } from "../src/lib/presets/index";
 import { assembleCatalog } from "../src/gtfs";
 
@@ -35,10 +35,10 @@ export type BuildCatalogOptions = {
   url?: string;
 };
 
-export function makeManifest(opts: BuildCatalogOptions): PresetManifest {
+export function makeManifest(opts: BuildCatalogOptions): RouteCatalogManifest {
   return {
     latestVersion: opts.version,
-    schemaVersion: PRESET_SCHEMA_VERSION,
+    schemaVersion: ROUTE_CATALOG_SCHEMA_VERSION,
     publishedAt: opts.generatedAt,
     summary: opts.summary ?? "",
     url: opts.url ?? "",
@@ -46,20 +46,20 @@ export function makeManifest(opts: BuildCatalogOptions): PresetManifest {
 }
 
 export function buildCatalog(opts: BuildCatalogOptions): {
-  catalog: PresetCatalog;
-  manifest: PresetManifest;
+  catalog: RouteCatalog;
+  manifest: RouteCatalogManifest;
 } {
   // Validate the assembled catalog exactly as a remote loader would validate a
   // downloaded one — the build fails loudly on a bad route rather than shipping it.
-  const catalog = validatePresetCatalog({
-    ...DEFAULT_PRESET_CATALOG,
+  const catalog = validateRouteCatalog({
+    ...BUNDLED_ROUTE_CATALOG,
     version: opts.version,
     generatedAt: opts.generatedAt,
   });
   return { catalog, manifest: makeManifest(opts) };
 }
 
-export const CATALOG_FILENAME = `presets.v${PRESET_SCHEMA_VERSION}.json`;
+export const CATALOG_FILENAME = `presets.v${ROUTE_CATALOG_SCHEMA_VERSION}.json`;
 
 async function main() {
   const version = process.env.CATALOG_VERSION ?? process.argv[2] ?? "0.0.0-dev";
@@ -71,8 +71,8 @@ async function main() {
   };
 
   const refreshToken = process.env.MOBILITY_DATABASE_REFRESH_TOKEN;
-  let catalog: PresetCatalog;
-  let manifest: PresetManifest;
+  let catalog: RouteCatalog;
+  let manifest: RouteCatalogManifest;
   if (refreshToken) {
     console.log("Assembling catalog from live Mobility Database GTFS feeds…");
     catalog = await assembleCatalog({

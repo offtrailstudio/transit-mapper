@@ -1,6 +1,6 @@
-import { LegacyPresetRoute } from "../../legacy";
+import { LegacyRoute } from "../../legacy";
 
-export const silverMeteor: LegacyPresetRoute = {
+export const silverMeteor: LegacyRoute = {
   id: "amtrak-silver-meteor",
   name: "Silver Meteor",
   groupId: "amtrak",

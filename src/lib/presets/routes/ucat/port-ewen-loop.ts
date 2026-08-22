@@ -1,6 +1,6 @@
-import { LegacyPresetRoute } from "../../legacy";
+import { LegacyRoute } from "../../legacy";
 
-export const portEwenLoop: LegacyPresetRoute = {
+export const portEwenLoop: LegacyRoute = {
   id: "ucat-port-ewen-loop",
   name: "Port Ewen Loop",
   color: "#8C6239",

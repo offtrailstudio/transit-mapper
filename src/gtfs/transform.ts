@@ -1,13 +1,13 @@
-import type { PresetGroup, PresetPattern, PresetRoute, PresetStop } from "../lib/presets";
+import type { RouteNetwork, CatalogPattern, CatalogRoute, CatalogStop } from "../lib/presets";
 import type { RouteType } from "../lib/types";
 import type { GtfsRow, GtfsTables } from "./parse";
 import { routeTypeFromGtfs } from "./routeType";
 
 /** A catalog fragment for one feed — combined with others by the assembler. */
 export type CatalogFragment = {
-  groups: PresetGroup[];
-  stops: PresetStop[];
-  routes: PresetRoute[];
+  groups: RouteNetwork[];
+  stops: CatalogStop[];
+  routes: CatalogRoute[];
 };
 
 export type TransformOptions = {
@@ -134,7 +134,7 @@ export function transformGtfs(tables: GtfsTables, options: TransformOptions = {}
 
   const usedStopIds = new Set<string>();
   const usedGroupTypes = new Map<string, RouteType[]>();
-  const routes: PresetRoute[] = [];
+  const routes: CatalogRoute[] = [];
 
   for (const route of tables.routes) {
     const gtfsType = toNumber(route.route_type);
@@ -153,7 +153,7 @@ export function transformGtfs(tables: GtfsTables, options: TransformOptions = {}
       continue; // No trip with ≥2 real stops — nothing to add to a map.
     }
 
-    const patterns: PresetPattern[] = sequences.map((sequence, index) => {
+    const patterns: CatalogPattern[] = sequences.map((sequence, index) => {
       for (const stopId of sequence.stopIds) {
         usedStopIds.add(stopId);
       }
@@ -180,12 +180,12 @@ export function transformGtfs(tables: GtfsTables, options: TransformOptions = {}
     });
   }
 
-  const stops: PresetStop[] = [...usedStopIds].map((stopId) => {
+  const stops: CatalogStop[] = [...usedStopIds].map((stopId) => {
     const stop = rawStops.get(stopId)!;
     return { id: nsid(stopId), name: stop.name, lng: stop.lng, lat: stop.lat };
   });
 
-  const groups: PresetGroup[] = [...usedGroupTypes.keys()].map((groupId) => {
+  const groups: RouteNetwork[] = [...usedGroupTypes.keys()].map((groupId) => {
     const rawAgencyId = idPrefix ? groupId.slice(idPrefix.length + 1) : groupId;
     const name = agencyNames.get(rawAgencyId === "agency" ? "" : rawAgencyId) ?? "Transit";
     return { id: groupId, name, defaultRouteType: mostCommon(usedGroupTypes.get(groupId)!) };

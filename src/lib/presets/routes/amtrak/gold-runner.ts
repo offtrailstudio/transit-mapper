@@ -1,6 +1,6 @@
-import { LegacyPresetRoute } from "../../legacy";
+import { LegacyRoute } from "../../legacy";
 
-export const goldRunner: LegacyPresetRoute = {
+export const goldRunner: LegacyRoute = {
   id: "amtrak-gold-runner",
   name: "Gold Runner",
   groupId: "amtrak",

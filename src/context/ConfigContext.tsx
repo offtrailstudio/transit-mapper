@@ -16,7 +16,7 @@ export type EditorConfig = {
    * Which built-in preset networks appear in the "Add a preset route" modal,
    * by group id (e.g. `["amtrak"]` to offer only Amtrak). Omit to show every
    * shipped network. An empty array shows none. Group ids come from
-   * `PRESET_GROUPS`.
+   * `BUNDLED_NETWORKS`.
    */
   presetGroups?: string[];
   /**

@@ -3,9 +3,9 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MergeStationsModal } from "./MergeStationsModal";
 import { StationMergeCandidate } from "../../lib/presetMerge";
-import { ResolvedPresetRoute } from "../../lib/presets";
+import { ResolvedRoute } from "../../lib/presets";
 
-const PRESET: ResolvedPresetRoute = {
+const PRESET: ResolvedRoute = {
   id: "acela",
   name: "Acela",
   stops: [

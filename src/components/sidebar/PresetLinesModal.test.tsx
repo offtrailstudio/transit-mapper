@@ -4,10 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { zipSync, strToU8 } from "fflate";
 import { EditorConfigProvider, type EditorConfig } from "../../context/ConfigContext";
 import { MapDataProvider, useMapData } from "../../context/MapDataContext";
-import type { PresetCatalog, PresetSource } from "../../lib/presets";
+import type { RouteCatalog, PresetSource } from "../../lib/presets";
 import { PresetRoutesModal } from "./PresetLinesModal";
 
-const CATALOG: PresetCatalog = {
+const CATALOG: RouteCatalog = {
   schemaVersion: 2,
   groups: [{ id: "mynet", name: "MyNet", defaultRouteType: "tram" }],
   stops: [
@@ -147,8 +147,8 @@ describe("PresetRoutesModal", () => {
   });
 
   it("shows a loading state, then renders an async-injected catalog", async () => {
-    let resolve!: (c: PresetCatalog) => void;
-    const deferred = new Promise<PresetCatalog>((r) => (resolve = r));
+    let resolve!: (c: RouteCatalog) => void;
+    const deferred = new Promise<RouteCatalog>((r) => (resolve = r));
     const loader = vi.fn(() => deferred);
     setup({}, loader);
 
@@ -162,7 +162,7 @@ describe("PresetRoutesModal", () => {
 
   it("surfaces a load error and retries", async () => {
     const loader = vi
-      .fn<() => Promise<PresetCatalog>>()
+      .fn<() => Promise<RouteCatalog>>()
       .mockRejectedValueOnce(new Error("boom"))
       .mockResolvedValueOnce(CATALOG);
     setup({}, loader);

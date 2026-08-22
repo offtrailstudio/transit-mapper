@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { groupPresetRoutes, resolvePresetRouteType } from "./groupLines";
-import { PresetGroup, PresetRoute } from "./types";
+import { groupRoutesByNetwork, resolveRouteMode } from "./groupLines";
+import { RouteNetwork, CatalogRoute } from "./types";
 
-const GROUPS: PresetGroup[] = [
+const GROUPS: RouteNetwork[] = [
   { id: "amtrak", name: "Amtrak" },
   { id: "nyc-subway", name: "NYC Subway" },
 ];
 
-function route(id: string, groupId?: string): PresetRoute {
+function route(id: string, groupId?: string): CatalogRoute {
   return { id, name: id, groupId, patterns: [] };
 }
 
-describe("groupPresetRoutes", () => {
+describe("groupRoutesByNetwork", () => {
   it("buckets routes under their group, in registry order", () => {
     const routes = [route("a", "amtrak"), route("b", "nyc-subway"), route("c", "amtrak")];
-    const result = groupPresetRoutes(routes, GROUPS);
+    const result = groupRoutesByNetwork(routes, GROUPS);
 
     expect(result.map((r) => r.group?.id)).toEqual(["amtrak", "nyc-subway"]);
     expect(result[0].routes.map((l) => l.id)).toEqual(["a", "c"]);
@@ -23,7 +23,7 @@ describe("groupPresetRoutes", () => {
 
   it("buckets routes with no groupId under group: null", () => {
     const routes = [route("a", "amtrak"), route("standalone")];
-    const result = groupPresetRoutes(routes, GROUPS);
+    const result = groupRoutesByNetwork(routes, GROUPS);
 
     const ungrouped = result.find((r) => r.group === null);
     expect(ungrouped?.routes.map((l) => l.id)).toEqual(["standalone"]);
@@ -31,7 +31,7 @@ describe("groupPresetRoutes", () => {
 
   it("omits groups with no routes", () => {
     const routes = [route("a", "amtrak")];
-    const result = groupPresetRoutes(routes, GROUPS);
+    const result = groupRoutesByNetwork(routes, GROUPS);
 
     expect(result).toHaveLength(1);
     expect(result[0].group?.id).toBe("amtrak");
@@ -39,26 +39,26 @@ describe("groupPresetRoutes", () => {
 
   it("omits the ungrouped bucket entirely when every route has a group", () => {
     const routes = [route("a", "amtrak")];
-    const result = groupPresetRoutes(routes, GROUPS);
+    const result = groupRoutesByNetwork(routes, GROUPS);
 
     expect(result.some((r) => r.group === null)).toBe(false);
   });
 });
 
-describe("resolvePresetRouteType", () => {
-  const busGroup: PresetGroup = { id: "g", name: "G", defaultRouteType: "bus" };
+describe("resolveRouteMode", () => {
+  const busGroup: RouteNetwork = { id: "g", name: "G", defaultRouteType: "bus" };
 
   it("uses the route's own routeType when set", () => {
-    const r: PresetRoute = { id: "a", name: "a", routeType: "hsr", patterns: [] };
-    expect(resolvePresetRouteType(r, busGroup)).toBe("hsr");
+    const r: CatalogRoute = { id: "a", name: "a", routeType: "hsr", patterns: [] };
+    expect(resolveRouteMode(r, busGroup)).toBe("hsr");
   });
 
   it("falls back to the group's defaultRouteType", () => {
-    expect(resolvePresetRouteType(route("a", "g"), busGroup)).toBe("bus");
+    expect(resolveRouteMode(route("a", "g"), busGroup)).toBe("bus");
   });
 
   it("falls back to the editor default when neither is set", () => {
-    expect(resolvePresetRouteType(route("a"), null)).toBe("subway");
-    expect(resolvePresetRouteType(route("a"), { id: "g", name: "G" })).toBe("subway");
+    expect(resolveRouteMode(route("a"), null)).toBe("subway");
+    expect(resolveRouteMode(route("a"), { id: "g", name: "G" })).toBe("subway");
   });
 });

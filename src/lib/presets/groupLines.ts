@@ -1,8 +1,8 @@
 import { DEFAULT_ROUTE_TYPE } from "../lineKinds";
 import { RouteType } from "../types";
-import { PresetRoute, PresetGroup } from "./types";
+import { CatalogRoute, RouteNetwork } from "./types";
 
-export type PresetRouteGroup<T = PresetRoute> = { group: PresetGroup | null; routes: T[] };
+export type RouteNetworkGroup<T = CatalogRoute> = { group: RouteNetwork | null; routes: T[] };
 
 /**
  * The transit mode a preset route resolves to: its own `routeType` wins, then
@@ -10,17 +10,17 @@ export type PresetRouteGroup<T = PresetRoute> = { group: PresetGroup | null; rou
  * mode a route adopts when added to a map. Structural in `route` so it serves
  * both the normalized v2 route and the flat legacy authoring shape.
  */
-export function resolvePresetRouteType(
+export function resolveRouteMode(
   route: { routeType?: RouteType },
-  group: PresetGroup | null
+  group: RouteNetwork | null
 ): RouteType {
   return route.routeType ?? group?.defaultRouteType ?? DEFAULT_ROUTE_TYPE;
 }
 
-export function groupPresetRoutes<T extends { groupId?: string }>(
+export function groupRoutesByNetwork<T extends { groupId?: string }>(
   routes: T[],
-  groups: PresetGroup[]
-): PresetRouteGroup<T>[] {
+  groups: RouteNetwork[]
+): RouteNetworkGroup<T>[] {
   const byGroupId = new Map<string, T[]>();
   const ungrouped: T[] = [];
 
@@ -34,7 +34,7 @@ export function groupPresetRoutes<T extends { groupId?: string }>(
     }
   }
 
-  const result: PresetRouteGroup<T>[] = groups
+  const result: RouteNetworkGroup<T>[] = groups
     .filter((g) => byGroupId.has(g.id))
     .map((g) => ({ group: g, routes: byGroupId.get(g.id)! }));
 

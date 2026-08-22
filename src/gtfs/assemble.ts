@@ -1,5 +1,5 @@
-import type { PresetCatalog, PresetGroup } from "../lib/presets";
-import { PRESET_SCHEMA_VERSION, validatePresetCatalog } from "../lib/presets";
+import type { RouteCatalog, RouteNetwork } from "../lib/presets";
+import { ROUTE_CATALOG_SCHEMA_VERSION, validateRouteCatalog } from "../lib/presets";
 import { parseGtfsZip } from "./parse";
 import { transformGtfs, type CatalogFragment } from "./transform";
 import {
@@ -25,7 +25,7 @@ export type AssembleOptions = {
 
 /** Concatenate per-feed fragments, deduping groups by id (feeds are prefix-isolated otherwise). */
 export function combineFragments(fragments: CatalogFragment[]): CatalogFragment {
-  const groups = new Map<string, PresetGroup>();
+  const groups = new Map<string, RouteNetwork>();
   const stops: CatalogFragment["stops"] = [];
   const routes: CatalogFragment["routes"] = [];
   for (const fragment of fragments) {
@@ -59,7 +59,7 @@ async function resolveFeed(
  * into one validated catalog. A network that can't be resolved or downloaded is
  * logged and skipped rather than failing the whole build.
  */
-export async function assembleCatalog(options: AssembleOptions): Promise<PresetCatalog> {
+export async function assembleCatalog(options: AssembleOptions): Promise<RouteCatalog> {
   const {
     refreshToken,
     networks = NETWORKS,
@@ -96,8 +96,8 @@ export async function assembleCatalog(options: AssembleOptions): Promise<PresetC
   }
 
   const combined = combineFragments(fragments);
-  return validatePresetCatalog({
-    schemaVersion: PRESET_SCHEMA_VERSION,
+  return validateRouteCatalog({
+    schemaVersion: ROUTE_CATALOG_SCHEMA_VERSION,
     ...(version ? { version } : {}),
     ...(generatedAt ? { generatedAt } : {}),
     ...combined,

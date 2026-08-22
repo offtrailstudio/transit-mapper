@@ -1,6 +1,6 @@
-import { LegacyPresetRoute } from "../../legacy";
+import { LegacyRoute } from "../../legacy";
 
-export const northeastRegional: LegacyPresetRoute = {
+export const northeastRegional: LegacyRoute = {
   id: "amtrak-northeast-regional",
   name: "Northeast Regional",
   color: "#DE1F26",
