@@ -13,20 +13,11 @@ import { createContext, useContext, type ReactNode } from "react";
 export type EditorConfig = {
   mapboxToken?: string;
   /**
-   * Which built-in preset networks appear in the "Add a preset route" modal,
-   * by group id (e.g. `["amtrak"]` to offer only Amtrak). Omit to show every
-   * shipped network. An empty array shows none. Group ids come from
-   * `BUNDLED_NETWORKS`.
+   * Restrict the "Add a route" picker to these networks, by id (e.g. `["amtrak"]`).
+   * Omit to offer every network the source returns; an empty array offers none.
+   * For the bundled static source, ids come from `BUNDLED_NETWORKS`.
    */
-  presetGroups?: string[];
-  /**
-   * Enable the "paste a GTFS feed URL" control in the preset modal — lets users
-   * import routes from any GTFS `.zip` at runtime. **Off by default** because it
-   * lazy-loads the GTFS parser, which requires the host to have installed the
-   * optional peer deps `fflate` and `csv-parse`. Turn it on only after adding
-   * those, or the control will error when used.
-   */
-  enableFeedImport?: boolean;
+  routeNetworks?: string[];
 };
 
 const ConfigContext = createContext<EditorConfig>({});

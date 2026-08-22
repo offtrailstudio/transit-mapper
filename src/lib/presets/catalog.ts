@@ -43,13 +43,6 @@ export type RouteCatalogManifest = {
 };
 
 /**
- * How the host supplies the catalog: an in-memory object, or a (possibly async)
- * loader called lazily the first time the modal opens. Read once — like
- * `MapDataProvider`'s `loadInitial`, its identity needn't be stable.
- */
-export type PresetSource = RouteCatalog | (() => RouteCatalog | Promise<RouteCatalog>);
-
-/**
  * A route flattened for *application to a map*: its primary pattern resolved
  * against the catalog's stop table into an ordered, inline stop list. The picker
  * and reducer work on this — a route is added as a single sequence of stations,
@@ -180,19 +173,13 @@ export function resolveCatalogRoute(catalog: RouteCatalog, route: CatalogRoute):
 }
 
 /**
- * A loader that fetches the catalog as JSON from `url` and validates it — the
- * intended production path, so route edits become a redeploy of a hosted file
- * rather than a package release. Pass to `MapDataProvider`'s `presets` prop.
+ * Fetch a hosted catalog JSON from `url` and validate it. Used by
+ * `remoteRouteSource`; exported so a host can prefetch/cache the catalog itself.
  */
-export function createRemotePresetLoader(
-  url: string,
-  init?: RequestInit
-): () => Promise<RouteCatalog> {
-  return async () => {
-    const res = await fetch(url, init);
-    if (!res.ok) {
-      throw new Error(`Failed to load presets (${res.status} ${res.statusText})`);
-    }
-    return validateRouteCatalog(await res.json());
-  };
+export async function fetchRouteCatalog(url: string, init?: RequestInit): Promise<RouteCatalog> {
+  const res = await fetch(url, init);
+  if (!res.ok) {
+    throw new Error(`Failed to load route catalog (${res.status} ${res.statusText})`);
+  }
+  return validateRouteCatalog(await res.json());
 }

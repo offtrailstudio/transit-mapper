@@ -17,7 +17,7 @@ describe("adding a bundled preset route to a map", () => {
     const resolved = resolveCatalogRoute(catalog, route);
     const expected = route.patterns[0].stopIds.length;
 
-    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", preset: resolved });
+    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", route: resolved });
 
     expect(state.data.routes).toHaveLength(1);
     expect(state.data.routes[0].name).toBe("Northeast Regional");

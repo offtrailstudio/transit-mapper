@@ -48,10 +48,13 @@ export type { CloudMap } from "./lib/cloudSync";
 export { normalizeMapData } from "./lib/migrate";
 export type { TransitMapData } from "./lib/types";
 
-// --- Preset route catalog (drives the "Add a preset route" modal) ---
-// The catalog is host-injectable via `MapDataProvider`'s `presets` prop so route
-// data can change without a package release; the bundled catalog is the default.
+// --- Adding real routes (drives the "Add a route" picker) ---
+// The picker searches a host-supplied `RouteSource` (via `MapDataProvider`'s
+// `routeSource` prop). Default: the bundled catalog as a static source. Point it
+// at a live Mobility Database source to let users add any real route.
 export {
+  staticRouteSource,
+  remoteRouteSource,
   BUNDLED_ROUTES,
   BUNDLED_NETWORKS,
   BUNDLED_ROUTE_CATALOG,
@@ -60,10 +63,12 @@ export {
   resolveCatalogRoute,
   resolveRouteMode,
   validateRouteCatalog,
-  createRemotePresetLoader,
+  fetchRouteCatalog,
   upgradeLegacyCatalog,
 } from "./lib/presets";
 export type {
+  RouteSource,
+  RouteSummary,
   CatalogRoute,
   CatalogPattern,
   RouteNetwork,
@@ -71,7 +76,6 @@ export type {
   RouteNetworkGroup,
   RouteCatalog,
   RouteCatalogManifest,
-  PresetSource,
   ResolvedRoute,
   LegacyRoute,
   LegacyStop,

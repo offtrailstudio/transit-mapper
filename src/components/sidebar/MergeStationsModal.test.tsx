@@ -35,7 +35,7 @@ function setup() {
   render(
     <MergeStationsModal
       open
-      preset={PRESET}
+      route={PRESET}
       candidates={CANDIDATES}
       onBack={onBack}
       onConfirm={onConfirm}

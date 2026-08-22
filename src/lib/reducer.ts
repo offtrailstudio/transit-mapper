@@ -18,7 +18,7 @@ export const initialEditorState: EditorState = {
 export type Action =
   | { type: "LOAD"; data: TransitMapData }
   | { type: "ADD_ROUTE" }
-  | { type: "ADD_CATALOG_ROUTE"; preset: ResolvedRoute; merges?: Record<number, string> }
+  | { type: "ADD_CATALOG_ROUTE"; route: ResolvedRoute; merges?: Record<number, string> }
   | { type: "ADD_STOP"; lng: number; lat: number; name?: string; routeId?: string }
   | { type: "ADD_STOP_TO_ROUTE"; routeId: string; stopId: string }
   | { type: "REORDER_STOP"; routeId: string; index: number; direction: "up" | "down" }
@@ -77,7 +77,7 @@ export function mapReducer(state: EditorState, action: Action): EditorState {
       // A stop with a valid merge target reuses that station's id instead of
       // minting a duplicate; every other stop becomes a fresh stop.
       const newStops: Stop[] = [];
-      const stopIds = action.preset.stops.map((stop, index) => {
+      const stopIds = action.route.stops.map((stop, index) => {
         const mergeId = merges[index];
         if (mergeId && existingIds.has(mergeId)) {
           return mergeId;
@@ -86,11 +86,11 @@ export function mapReducer(state: EditorState, action: Action): EditorState {
         newStops.push(newStop);
         return newStop.id;
       });
-      const routeType = action.preset.routeType ?? DEFAULT_ROUTE_TYPE;
+      const routeType = action.route.routeType ?? DEFAULT_ROUTE_TYPE;
       const newRoute: Route = {
         id: createId(),
-        name: action.preset.name,
-        routeColor: action.preset.color ?? nextRouteColor(state.data.routes.length),
+        name: action.route.name,
+        routeColor: action.route.color ?? nextRouteColor(state.data.routes.length),
         routeType,
         headwayMin: defaultHeadwayForRouteType(routeType),
         patterns: [{ id: createId(), stopIds }],

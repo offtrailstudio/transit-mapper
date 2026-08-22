@@ -3,7 +3,7 @@
  * entry point. The host (which holds the Mobility Database refresh token, just
  * as it holds the Mapbox token) calls {@link assembleCatalog} to build a
  * validated `RouteCatalog` from live feeds, then serves/injects that JSON into
- * the editor via `MapDataProvider`'s `presets` prop.
+ * the editor via `MapDataProvider`'s `routeSource` prop (wrap it in `staticRouteSource`).
  *
  * This module is intentionally kept out of the browser entry (`.`): it depends
  * on `fflate` + `csv-parse` (optional peer deps) and is never needed at runtime

@@ -53,7 +53,7 @@ async function resolveFeed(
 }
 
 /**
- * Build a normalized preset catalog from live Mobility Database feeds: exchange
+ * Build a normalized route catalog from live Mobility Database feeds: exchange
  * the refresh token, then for each curated network resolve its feed, download
  * the latest GTFS dataset, and transform it into a fragment. Fragments combine
  * into one validated catalog. A network that can't be resolved or downloaded is

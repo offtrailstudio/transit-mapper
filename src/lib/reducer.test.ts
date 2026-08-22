@@ -195,7 +195,7 @@ describe("mapReducer", () => {
 
 describe("ADD_CATALOG_ROUTE", () => {
   it("creates one route and a stop per stop, in order", () => {
-    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", preset: FIXTURE_PRESET });
+    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", route: FIXTURE_PRESET });
 
     expect(state.data.routes).toHaveLength(1);
     expect(state.data.stops).toHaveLength(2);
@@ -204,7 +204,7 @@ describe("ADD_CATALOG_ROUTE", () => {
   });
 
   it("uses the preset's name and color when provided", () => {
-    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", preset: FIXTURE_PRESET });
+    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", route: FIXTURE_PRESET });
 
     expect(state.data.routes[0].name).toBe("Fixture Route");
     expect(state.data.routes[0].routeColor).toBe("#123456");
@@ -214,16 +214,16 @@ describe("ADD_CATALOG_ROUTE", () => {
     const presetWithoutColor: ResolvedRoute = { ...FIXTURE_PRESET, color: undefined };
     let state = mapReducer(initialEditorState, {
       type: "ADD_CATALOG_ROUTE",
-      preset: presetWithoutColor,
+      route: presetWithoutColor,
     });
     expect(state.data.routes[0].routeColor).toBe(nextRouteColor(0));
 
-    state = mapReducer(state, { type: "ADD_CATALOG_ROUTE", preset: presetWithoutColor });
+    state = mapReducer(state, { type: "ADD_CATALOG_ROUTE", route: presetWithoutColor });
     expect(state.data.routes[1].routeColor).toBe(nextRouteColor(1));
   });
 
   it("sets the new route as active", () => {
-    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", preset: FIXTURE_PRESET });
+    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", route: FIXTURE_PRESET });
     expect(state.activeRouteId).toBe(state.data.routes[0].id);
   });
 
@@ -233,7 +233,7 @@ describe("ADD_CATALOG_ROUTE", () => {
     const existingRoute = state.data.routes[0];
     const existingStop = state.data.stops[0];
 
-    state = mapReducer(state, { type: "ADD_CATALOG_ROUTE", preset: FIXTURE_PRESET });
+    state = mapReducer(state, { type: "ADD_CATALOG_ROUTE", route: FIXTURE_PRESET });
 
     expect(state.data.routes).toContainEqual(existingRoute);
     expect(state.data.stops).toContainEqual(existingStop);
@@ -242,15 +242,15 @@ describe("ADD_CATALOG_ROUTE", () => {
   });
 
   it("mints unique stop ids across repeated dispatches", () => {
-    let state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", preset: FIXTURE_PRESET });
-    state = mapReducer(state, { type: "ADD_CATALOG_ROUTE", preset: FIXTURE_PRESET });
+    let state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", route: FIXTURE_PRESET });
+    state = mapReducer(state, { type: "ADD_CATALOG_ROUTE", route: FIXTURE_PRESET });
 
     const ids = state.data.stops.map((p) => p.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   it("reuses an existing stop for a merged stop instead of duplicating it", () => {
-    let state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", preset: FIXTURE_PRESET });
+    let state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", route: FIXTURE_PRESET });
     const sharedId = state.data.stops[0].id; // "Alpha"
 
     // A second preset whose first stop is the same station as Alpha.
@@ -264,7 +264,7 @@ describe("ADD_CATALOG_ROUTE", () => {
     };
     state = mapReducer(state, {
       type: "ADD_CATALOG_ROUTE",
-      preset: overlapping,
+      route: overlapping,
       merges: { 0: sharedId },
     });
 
@@ -280,7 +280,7 @@ describe("ADD_CATALOG_ROUTE", () => {
   it("ignores merge ids that don't stop at a real station", () => {
     const state = mapReducer(initialEditorState, {
       type: "ADD_CATALOG_ROUTE",
-      preset: FIXTURE_PRESET,
+      route: FIXTURE_PRESET,
       merges: { 0: "does-not-exist" },
     });
 
@@ -290,14 +290,14 @@ describe("ADD_CATALOG_ROUTE", () => {
   });
 
   it("defaults a preset with no routeType to the subway type and its headway", () => {
-    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", preset: FIXTURE_PRESET });
+    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", route: FIXTURE_PRESET });
     expect(state.data.routes[0].routeType).toBe("subway");
     expect(state.data.routes[0].headwayMin).toBe(5);
   });
 
   it("honors a preset's routeType and seeds that type's headway", () => {
     const busPreset: ResolvedRoute = { ...FIXTURE_PRESET, routeType: "bus" };
-    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", preset: busPreset });
+    const state = mapReducer(initialEditorState, { type: "ADD_CATALOG_ROUTE", route: busPreset });
     expect(state.data.routes[0].routeType).toBe("bus");
     expect(state.data.routes[0].headwayMin).toBe(10); // bus default
   });

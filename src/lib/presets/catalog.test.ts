@@ -1,11 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  createRemotePresetLoader,
-  ROUTE_CATALOG_SCHEMA_VERSION,
-  resolveCatalogRoute,
-  validateRouteCatalog,
-} from "./catalog";
-import { BUNDLED_ROUTE_CATALOG } from "./index";
+import { ROUTE_CATALOG_SCHEMA_VERSION, resolveCatalogRoute, validateRouteCatalog } from "./catalog";
+import { BUNDLED_ROUTE_CATALOG, remoteRouteSource } from "./index";
 
 const VALID = {
   schemaVersion: ROUTE_CATALOG_SCHEMA_VERSION,
@@ -153,27 +148,28 @@ describe("resolveCatalogRoute", () => {
   });
 });
 
-describe("createRemotePresetLoader", () => {
+describe("remoteRouteSource", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("fetches, validates, and returns the catalog", async () => {
+  it("fetches, validates, and searches the hosted catalog", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({ ok: true, json: async () => VALID }))
     );
-    const load = createRemotePresetLoader("https://cdn.example/presets.json");
-    await expect(load()).resolves.toBe(VALID);
+    const results = await remoteRouteSource("https://cdn.example/routes.json").search("");
+    expect(results.map((r) => r.id)).toEqual(["r1"]);
   });
 
   it("throws on a non-ok response", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({ ok: false, status: 404, statusText: "Not Found", json: async () => ({}) }))
+      vi.fn(async () => ({ ok: false, status: 404, statusText: "Not Found" }))
     );
-    const load = createRemotePresetLoader("https://cdn.example/presets.json");
-    await expect(load()).rejects.toThrow(/404/);
+    await expect(remoteRouteSource("https://cdn.example/routes.json").search("")).rejects.toThrow(
+      /404/
+    );
   });
 
   it("throws when the fetched payload fails validation", async () => {
@@ -181,7 +177,8 @@ describe("createRemotePresetLoader", () => {
       "fetch",
       vi.fn(async () => ({ ok: true, json: async () => ({ schemaVersion: 999 }) }))
     );
-    const load = createRemotePresetLoader("https://cdn.example/presets.json");
-    await expect(load()).rejects.toThrow(/schemaVersion/);
+    await expect(remoteRouteSource("https://cdn.example/routes.json").search("")).rejects.toThrow(
+      /schemaVersion/
+    );
   });
 });
