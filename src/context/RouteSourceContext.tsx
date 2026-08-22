@@ -1,11 +1,26 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import { BUNDLED_ROUTE_CATALOG, RouteSource, staticRouteSource } from "../lib/presets";
+import type { RouteSource } from "../lib/presets";
 
-// Zero-config default: the bundled catalog as a static, searchable source. Built
-// once at module load so every embed without a host source shares one index.
-const DEFAULT_ROUTE_SOURCE = staticRouteSource(BUNDLED_ROUTE_CATALOG);
+// Lazily build the bundled default source on first use, via a dynamic import.
+// This keeps the pure catalog + `staticRouteSource` code out of *this* client
+// chunk — critical because the server-only `/gtfs` handler also imports
+// `staticRouteSource`; co-bundling it here marks it `"use client"` and Next then
+// refuses to run it on the server. The dynamic import forces its own chunk.
+let defaultSourcePromise: Promise<RouteSource> | null = null;
+function loadDefaultSource(): Promise<RouteSource> {
+  return (defaultSourcePromise ??= import("../lib/presets/defaultRouteSource").then(
+    (module) => module.DEFAULT_ROUTE_SOURCE,
+  ));
+}
+
+// A thin proxy so the context always has a value; it defers to the bundled source
+// the first time it's searched (a bare embed with no host-provided source).
+const DEFAULT_ROUTE_SOURCE: RouteSource = {
+  search: (query, opts) => loadDefaultSource().then((source) => source.search(query, opts)),
+  resolve: (id, opts) => loadDefaultSource().then((source) => source.resolve(id, opts)),
+};
 
 const RouteSourceContext = createContext<RouteSource>(DEFAULT_ROUTE_SOURCE);
 
