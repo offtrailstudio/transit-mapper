@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyPresetRoute } from "../../legacy";
 
-export const hudsonLine: PresetRoute = {
+export const hudsonLine: LegacyPresetRoute = {
   id: "mnr-hudson-line",
   name: "Hudson Line",
   color: "#009B3A",

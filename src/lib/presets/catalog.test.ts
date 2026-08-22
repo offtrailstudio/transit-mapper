@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createRemotePresetLoader,
   PRESET_SCHEMA_VERSION,
+  resolvePresetRoute,
   validatePresetCatalog,
 } from "./catalog";
 import { DEFAULT_PRESET_CATALOG } from "./index";
@@ -9,21 +10,22 @@ import { DEFAULT_PRESET_CATALOG } from "./index";
 const VALID = {
   schemaVersion: PRESET_SCHEMA_VERSION,
   groups: [{ id: "amtrak", name: "Amtrak" }],
+  stops: [
+    { id: "s1", name: "A", lng: -73, lat: 41 },
+    { id: "s2", name: "B", lng: -74, lat: 42 },
+  ],
   routes: [
     {
       id: "r1",
       name: "Route 1",
       groupId: "amtrak",
-      stops: [
-        { name: "A", lng: -73, lat: 41 },
-        { name: "B", lng: -74, lat: 42 },
-      ],
+      patterns: [{ id: "r1:p0", stopIds: ["s1", "s2"] }],
     },
   ],
 };
 
 describe("validatePresetCatalog", () => {
-  it("accepts a well-formed catalog and returns it typed", () => {
+  it("accepts a well-formed v2 catalog and returns it typed", () => {
     expect(validatePresetCatalog(VALID)).toBe(VALID);
     expect(validatePresetCatalog(DEFAULT_PRESET_CATALOG)).toBe(DEFAULT_PRESET_CATALOG);
   });
@@ -37,12 +39,12 @@ describe("validatePresetCatalog", () => {
     expect(() => validatePresetCatalog("nope")).toThrow();
   });
 
-  it("rejects missing groups/routes arrays", () => {
+  it("rejects missing groups/stops/routes arrays", () => {
     expect(() => validatePresetCatalog({ schemaVersion: PRESET_SCHEMA_VERSION })).toThrow(/arrays/);
   });
 
   it("accepts optional version + generatedAt metadata", () => {
-    const withMeta = { ...VALID, version: "1.4.0", generatedAt: "2026-08-20T00:00:00.000Z" };
+    const withMeta = { ...VALID, version: "2.0.0", generatedAt: "2026-08-20T00:00:00.000Z" };
     expect(validatePresetCatalog(withMeta)).toBe(withMeta);
   });
 
@@ -50,19 +52,29 @@ describe("validatePresetCatalog", () => {
     expect(() => validatePresetCatalog({ ...VALID, version: 14 })).toThrow(/version/);
   });
 
-  it("rejects a route with fewer than 2 stops", () => {
+  it("rejects a pattern with fewer than 2 stops", () => {
     const bad = {
       ...VALID,
-      routes: [{ id: "r1", name: "Route 1", stops: [{ name: "A", lng: -73, lat: 41 }] }],
+      routes: [{ ...VALID.routes[0], patterns: [{ id: "r1:p0", stopIds: ["s1"] }] }],
     };
     expect(() => validatePresetCatalog(bad)).toThrow(/at least 2 stops/);
   });
 
-  it("rejects a routeType the editor doesn't understand", () => {
+  it("rejects a route with no patterns", () => {
+    const bad = { ...VALID, routes: [{ ...VALID.routes[0], patterns: [] }] };
+    expect(() => validatePresetCatalog(bad)).toThrow(/at least 1 pattern/);
+  });
+
+  it("rejects a pattern referencing a stop not in the table", () => {
     const bad = {
       ...VALID,
-      routes: [{ ...VALID.routes[0], routeType: "monorail" }],
+      routes: [{ ...VALID.routes[0], patterns: [{ id: "r1:p0", stopIds: ["s1", "ghost"] }] }],
     };
+    expect(() => validatePresetCatalog(bad)).toThrow(/unknown stop "ghost"/);
+  });
+
+  it("rejects a routeType the editor doesn't understand", () => {
+    const bad = { ...VALID, routes: [{ ...VALID.routes[0], routeType: "monorail" }] };
     expect(() => validatePresetCatalog(bad)).toThrow(/not a known transit mode/);
   });
 
@@ -87,18 +99,57 @@ describe("validatePresetCatalog", () => {
   it("rejects a stop with a non-numeric coordinate", () => {
     const bad = {
       ...VALID,
-      routes: [
-        {
-          id: "r1",
-          name: "Route 1",
-          stops: [
-            { name: "A", lng: "west", lat: 41 },
-            { name: "B", lng: -74, lat: 42 },
-          ],
-        },
+      stops: [
+        { id: "s1", name: "A", lng: "west", lat: 41 },
+        { id: "s2", name: "B", lng: -74, lat: 42 },
       ],
     };
-    expect(() => validatePresetCatalog(bad)).toThrow(/lng\/lat/);
+    expect(() => validatePresetCatalog(bad)).toThrow(/name\/lng\/lat/);
+  });
+});
+
+describe("validatePresetCatalog (v1 upgrade)", () => {
+  const V1 = {
+    schemaVersion: 1,
+    groups: [{ id: "amtrak", name: "Amtrak" }],
+    routes: [
+      {
+        id: "r1",
+        name: "Route 1",
+        groupId: "amtrak",
+        routeType: "rail",
+        stops: [
+          { name: "A", lng: -73, lat: 41 },
+          { name: "B", lng: -74, lat: 42 },
+        ],
+      },
+    ],
+  };
+
+  it("upgrades a schemaVersion-1 catalog into the normalized v2 shape", () => {
+    const upgraded = validatePresetCatalog(V1);
+    expect(upgraded.schemaVersion).toBe(PRESET_SCHEMA_VERSION);
+    expect(upgraded.stops).toEqual([
+      { id: "r1:0", name: "A", lng: -73, lat: 41 },
+      { id: "r1:1", name: "B", lng: -74, lat: 42 },
+    ]);
+    expect(upgraded.routes[0].patterns).toEqual([{ id: "r1:p0", stopIds: ["r1:0", "r1:1"] }]);
+    expect(upgraded.routes[0].routeType).toBe("rail");
+  });
+
+  it("still applies v1 field validation before upgrading", () => {
+    const bad = { ...V1, routes: [{ ...V1.routes[0], stops: [{ name: "A", lng: -73, lat: 41 }] }] };
+    expect(() => validatePresetCatalog(bad)).toThrow(/at least 2 stops/);
+  });
+});
+
+describe("resolvePresetRoute", () => {
+  it("flattens a route's primary pattern against the stop table, in order", () => {
+    const [route] = validatePresetCatalog(VALID).routes;
+    const resolved = resolvePresetRoute(VALID, route);
+    expect(resolved.stops.map((s) => s.name)).toEqual(["A", "B"]);
+    expect(resolved.groupId).toBe("amtrak");
+    expect("patterns" in resolved).toBe(false);
   });
 });
 
@@ -128,7 +179,7 @@ describe("createRemotePresetLoader", () => {
   it("throws when the fetched payload fails validation", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({ ok: true, json: async () => ({ schemaVersion: 2 }) }))
+      vi.fn(async () => ({ ok: true, json: async () => ({ schemaVersion: 999 }) }))
     );
     const load = createRemotePresetLoader("https://cdn.example/presets.json");
     await expect(load()).rejects.toThrow(/schemaVersion/);

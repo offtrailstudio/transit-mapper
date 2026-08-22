@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyPresetRoute } from "../../legacy";
 
-export const mapleLeaf: PresetRoute = {
+export const mapleLeaf: LegacyPresetRoute = {
   id: "amtrak-maple-leaf",
   name: "Maple Leaf",
   groupId: "amtrak",

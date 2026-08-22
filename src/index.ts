@@ -57,18 +57,25 @@ export {
   DEFAULT_PRESET_CATALOG,
   PRESET_SCHEMA_VERSION,
   groupPresetRoutes,
+  resolvePresetRoute,
   resolvePresetRouteType,
   validatePresetCatalog,
   createRemotePresetLoader,
+  upgradeLegacyCatalog,
 } from "./lib/presets";
 export type {
   PresetRoute,
+  PresetPattern,
   PresetGroup,
   PresetStop,
   PresetRouteGroup,
   PresetCatalog,
   PresetManifest,
   PresetSource,
+  ResolvedPresetRoute,
+  LegacyPresetRoute,
+  LegacyPresetStop,
+  LegacyPresetCatalog,
 } from "./lib/presets";
 
 // --- Transit modes (GTFS route_type) — the enum a catalog's routeType must match ---

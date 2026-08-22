@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyPresetRoute } from "../../legacy";
 
-export const uplRoute: PresetRoute = {
+export const uplRoute: LegacyPresetRoute = {
   id: "ucat-upl-route",
   name: "UPL Route",
   color: "#2A9D3A",

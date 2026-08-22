@@ -93,33 +93,54 @@ function Rail() {
 
 ### Preset routes
 
-The editor ships a catalog of real-world networks (Amtrak, Metro-North, …) that
-users can drop onto a map from the **Add a preset route** modal. The modal groups
-routes by network, is searchable, and shows each route's default transit mode.
-Each route resolves a transit mode from, in order: its own `routeType`, its
-group's `defaultRouteType`, then the editor default.
+Preset routes (the **Add a preset route** modal) are **optional** and
+**host-supplied**. The modal groups routes by network, is searchable, and shows
+each route's default transit mode. Each route resolves a mode from, in order: its
+own `routeType`, its group's `defaultRouteType`, then the editor default.
 
-**The catalog is host-injectable so it isn't tied to the package version.** Route
-data changes far more often than editor code (new networks, moved stops), so pass
-your own catalog to `MapDataProvider` instead of relying on the bundled one — then
-updating routes is a redeploy of a JSON file, not an `npm` release:
+**The catalog is host-injectable so it isn't tied to the package version.** Pass
+your own catalog to `MapDataProvider`; omit it and the editor falls back to a
+small bundled catalog. Serve the catalog JSON from your own app so updating routes
+is a redeploy, not an `npm` release:
 
 ```tsx
 import { createRemotePresetLoader } from "@offtrailstudio/transit-mapper";
 
 // Fetched lazily the first time the modal opens, then cached. The payload is
 // validated (see PresetCatalog / PRESET_SCHEMA_VERSION); a bad shape shows an
-// error with a retry rather than breaking the editor. Pin to an immutable tag so
-// a catalog update never lands silently — bump the tag when you choose to pull it.
-const loadPresets = createRemotePresetLoader(
-  "https://cdn.jsdelivr.net/gh/offtrailstudio/transit-networks@v1.0.0/presets.v1.json",
-);
+// error with a retry rather than breaking the editor. Point it at a JSON file
+// your app serves (pin an immutable/versioned URL so an update never lands
+// silently).
+const loadPresets = createRemotePresetLoader("/presets.v2.json");
 
 <MapDataProvider presets={loadPresets}>…</MapDataProvider>;
 ```
 
 `presets` accepts either a `PresetCatalog` object or a (sync or async) loader
 returning one. Omit it to use `DEFAULT_PRESET_CATALOG` (the bundled routes).
+
+**Building a catalog from live GTFS.** A server-only subpath,
+`@offtrailstudio/transit-mapper/gtfs`, assembles a validated catalog from real
+[Mobility Database](https://mobilitydatabase.org) feeds. Like the Mapbox token,
+the **host holds the Mobility Database token** and passes it in — the package
+provides the capability, your app provides the secret:
+
+```ts
+// Server/build-time only (e.g. a build script or a cached server route).
+import { assembleCatalog } from "@offtrailstudio/transit-mapper/gtfs";
+
+const catalog = await assembleCatalog({
+  refreshToken: process.env.MOBILITY_DATABASE_REFRESH_TOKEN!, // your app's env
+});
+// Write catalog to a JSON file you serve, or return it from a cached endpoint,
+// then load it in the client with createRemotePresetLoader(...).
+```
+
+The `/gtfs` entry needs `fflate` + `csv-parse` (optional peer deps — install them
+only if you build catalogs). It's kept out of the browser bundle. A free Mobility
+Database account provides the refresh token; without a catalog, presets simply
+stay empty (the modal still works). The repo's own `npm run build:catalog` wraps
+this same function for the bundled fallback + CI validation.
 
 To offer only some of the *visible* networks, pass a `presetGroups` allowlist of
 group ids:

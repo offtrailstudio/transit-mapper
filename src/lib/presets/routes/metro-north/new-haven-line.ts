@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyPresetRoute } from "../../legacy";
 
-export const newHavenLine: PresetRoute = {
+export const newHavenLine: LegacyPresetRoute = {
   id: "mnr-new-haven-line",
   name: "New Haven Line",
   color: "#EE0034",

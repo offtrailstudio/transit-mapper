@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyPresetRoute } from "../../legacy";
 
-export const kplRoute: PresetRoute = {
+export const kplRoute: LegacyPresetRoute = {
   id: "ucat-kpl-route",
   name: "KPL Route",
   color: "#C1272D",

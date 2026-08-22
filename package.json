@@ -37,6 +37,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./gtfs": {
+      "types": "./dist/gtfs.d.ts",
+      "import": "./dist/gtfs.js"
     }
   },
   "scripts": {
@@ -48,10 +52,20 @@
     "build:catalog": "tsx scripts/build-catalog.ts"
   },
   "peerDependencies": {
+    "csv-parse": ">=5",
+    "fflate": ">=0.8",
     "mapbox-gl": ">=3",
     "react": ">=19",
     "react-dom": ">=19",
     "react-map-gl": ">=8"
+  },
+  "peerDependenciesMeta": {
+    "csv-parse": {
+      "optional": true
+    },
+    "fflate": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.2.16",
@@ -70,6 +84,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "bunchee": "^7.0.1",
+    "csv-parse": "^7.0.2",
+    "fflate": "^0.8.3",
     "jsdom": "^29.1.1",
     "tsx": "^4.19.2",
     "typescript": "^5",

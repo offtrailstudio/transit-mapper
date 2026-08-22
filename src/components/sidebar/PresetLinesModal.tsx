@@ -9,9 +9,11 @@ import { usePresets } from "../../context/PresetsContext";
 import { findPresetMergeCandidates, StationMergeCandidate } from "../../lib/presetMerge";
 import {
   groupPresetRoutes,
+  resolvePresetRoute,
   resolvePresetRouteType,
   PresetGroup,
   PresetRoute,
+  ResolvedPresetRoute,
 } from "../../lib/presets";
 import { ROUTE_TYPE_DEFAULTS } from "../../lib/lineKinds";
 import { MergeStationsModal } from "./MergeStationsModal";
@@ -38,7 +40,7 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
   // even though the catalog can arrive asynchronously, after this state inits.
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [pending, setPending] = useState<{
-    preset: PresetRoute;
+    preset: ResolvedPresetRoute;
     candidates: StationMergeCandidate[];
   } | null>(null);
 
@@ -82,8 +84,14 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
   }
 
   function selectPreset(preset: PresetRoute, group: PresetGroup | null) {
-    const resolved: PresetRoute = { ...preset, routeType: resolvePresetRouteType(preset, group) };
-    const candidates = findPresetMergeCandidates(state.data.stops, preset.stops);
+    if (!catalog) {
+      return;
+    }
+    const resolved: ResolvedPresetRoute = {
+      ...resolvePresetRoute(catalog, preset),
+      routeType: resolvePresetRouteType(preset, group),
+    };
+    const candidates = findPresetMergeCandidates(state.data.stops, resolved.stops);
     if (candidates.length === 0) {
       dispatch({ type: "ADD_PRESET_ROUTE", preset: resolved });
       onClose();
@@ -220,7 +228,7 @@ export function PresetRoutesModal({ open, onClose }: { open: boolean; onClose: (
                                 {ROUTE_TYPE_DEFAULTS[routeType].label}
                               </span>
                               <span className="text-xs text-neutral-500">
-                                {preset.stops.length} stops
+                                {preset.patterns[0]?.stopIds.length ?? 0} stops
                               </span>
                             </span>
                           </button>

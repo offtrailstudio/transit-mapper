@@ -6,7 +6,7 @@ const OPTS = {
   version: "1.4.0",
   generatedAt: "2026-08-20T00:00:00.000Z",
   summary: "Added SEPTA Regional Rail",
-  url: "https://cdn.jsdelivr.net/gh/offtrailstudio/transit-networks@v1.4.0/presets.v1.json",
+  url: "https://example.com/presets.v2.json",
 };
 
 describe("buildCatalog", () => {

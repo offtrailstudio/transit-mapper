@@ -2,15 +2,15 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/offtrailstudio/transit-mapper/presets.schema.json",
   "title": "PresetCatalog",
-  "description": "The injectable preset-route catalog for @offtrailstudio/transit-mapper. Keep in sync with PresetCatalog in src/lib/presets/catalog.ts.",
+  "description": "The injectable, normalized preset-route catalog for @offtrailstudio/transit-mapper. A strict projection of the editor's TransitMapData: a shared stop table plus routes whose ordered sequences live in patterns. Keep in sync with PresetCatalog in src/lib/presets/catalog.ts. A schemaVersion-1 payload (flat stops embedded per route) is still accepted and auto-upgraded by the loader.",
   "type": "object",
-  "required": ["schemaVersion", "groups", "routes"],
+  "required": ["schemaVersion", "groups", "stops", "routes"],
   "additionalProperties": false,
   "properties": {
     "schemaVersion": {
-      "description": "Catalog shape version. The editor rejects a payload whose value it doesn't understand.",
+      "description": "Catalog shape version. The editor rejects a payload whose value it doesn't understand (v1 is upgraded, v2 is native).",
       "type": "integer",
-      "const": 1
+      "const": 2
     },
     "version": {
       "description": "Semver of the content (new routes = minor, coordinate fixes = patch, schema bump = major).",
@@ -24,6 +24,11 @@
     "groups": {
       "type": "array",
       "items": { "$ref": "#/definitions/PresetGroup" }
+    },
+    "stops": {
+      "description": "Shared stop table (GTFS stops.txt); patterns reference these by id.",
+      "type": "array",
+      "items": { "$ref": "#/definitions/PresetStop" }
     },
     "routes": {
       "type": "array",
@@ -51,17 +56,37 @@
     },
     "PresetStop": {
       "type": "object",
-      "required": ["name", "lng", "lat"],
+      "required": ["id", "name", "lng", "lat"],
       "additionalProperties": false,
       "properties": {
+        "id": { "type": "string" },
         "name": { "type": "string" },
         "lng": { "type": "number", "minimum": -180, "maximum": 180 },
         "lat": { "type": "number", "minimum": -90, "maximum": 90 }
       }
     },
+    "PresetPattern": {
+      "description": "One ordered stop sequence a route runs — GTFS trip pattern. patterns[0] is primary.",
+      "type": "object",
+      "required": ["id", "stopIds"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "name": {
+          "description": "Optional variant label (GTFS trip_headsign-ish), e.g. \"via Airport\".",
+          "type": "string"
+        },
+        "stopIds": {
+          "description": "Ordered ids into the catalog's shared stops table.",
+          "type": "array",
+          "minItems": 2,
+          "items": { "type": "string" }
+        }
+      }
+    },
     "PresetRoute": {
       "type": "object",
-      "required": ["id", "name", "stops"],
+      "required": ["id", "name", "patterns"],
       "additionalProperties": false,
       "properties": {
         "id": { "type": "string" },
@@ -70,10 +95,10 @@
         "routeType": { "$ref": "#/definitions/RouteType" },
         "description": { "type": "string" },
         "groupId": { "type": "string" },
-        "stops": {
+        "patterns": {
           "type": "array",
-          "minItems": 2,
-          "items": { "$ref": "#/definitions/PresetStop" }
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/PresetPattern" }
         }
       }
     }

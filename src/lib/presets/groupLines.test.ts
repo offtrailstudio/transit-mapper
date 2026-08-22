@@ -8,7 +8,7 @@ const GROUPS: PresetGroup[] = [
 ];
 
 function route(id: string, groupId?: string): PresetRoute {
-  return { id, name: id, groupId, stops: [] };
+  return { id, name: id, groupId, patterns: [] };
 }
 
 describe("groupPresetRoutes", () => {
@@ -49,7 +49,7 @@ describe("resolvePresetRouteType", () => {
   const busGroup: PresetGroup = { id: "g", name: "G", defaultRouteType: "bus" };
 
   it("uses the route's own routeType when set", () => {
-    const r: PresetRoute = { id: "a", name: "a", routeType: "hsr", stops: [] };
+    const r: PresetRoute = { id: "a", name: "a", routeType: "hsr", patterns: [] };
     expect(resolvePresetRouteType(r, busGroup)).toBe("hsr");
   });
 

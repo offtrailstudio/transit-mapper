@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyPresetRoute } from "../../legacy";
 
-export const palmetto: PresetRoute = {
+export const palmetto: LegacyPresetRoute = {
   id: "amtrak-palmetto",
   name: "Palmetto",
   groupId: "amtrak",

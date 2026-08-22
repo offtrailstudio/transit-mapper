@@ -7,17 +7,18 @@ import type { PresetCatalog, PresetSource } from "../../lib/presets";
 import { PresetRoutesModal } from "./PresetLinesModal";
 
 const CATALOG: PresetCatalog = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   groups: [{ id: "mynet", name: "MyNet", defaultRouteType: "tram" }],
+  stops: [
+    { id: "s1", name: "A", lng: -73, lat: 41 },
+    { id: "s2", name: "B", lng: -74, lat: 42 },
+  ],
   routes: [
     {
       id: "r1",
       name: "My Route",
       groupId: "mynet",
-      stops: [
-        { name: "A", lng: -73, lat: 41 },
-        { name: "B", lng: -74, lat: 42 },
-      ],
+      patterns: [{ id: "r1:p0", stopIds: ["s1", "s2"] }],
     },
   ],
 };

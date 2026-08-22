@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Modal } from "../Modal";
 import { StationMergeCandidate } from "../../lib/presetMerge";
-import { PresetRoute } from "../../lib/presets";
+import { ResolvedPresetRoute } from "../../lib/presets";
 
 export function MergeStationsModal({
   open,
@@ -15,7 +15,7 @@ export function MergeStationsModal({
   onClose,
 }: {
   open: boolean;
-  preset: PresetRoute;
+  preset: ResolvedPresetRoute;
   candidates: StationMergeCandidate[];
   onBack: () => void;
   onConfirm: (merges: Record<number, string>) => void;

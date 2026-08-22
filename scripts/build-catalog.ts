@@ -1,16 +1,18 @@
 /**
- * Emits the hostable preset artifacts from the bundled catalog:
+ * Emits the hostable preset artifacts:
  *
  *   catalog-dist/presets.v<schema>.json  — the full, validated PresetCatalog
  *   catalog-dist/manifest.json           — latest version + schema + summary
  *
- * This is the migration on-ramp: it runs against the routes that live in this
- * package today, and lifts unchanged into a dedicated `transit-networks` data
- * repo later (where it would import the catalog from published route files
- * instead of the bundled default). CI runs it on every PR so a catalog that
- * can't assemble or validate never merges.
+ * Source of the catalog, in order of preference:
+ *   1. Live GTFS from the Mobility Database (https://mobilitydatabase.org) when
+ *      MOBILITY_DATABASE_REFRESH_TOKEN is set — the intended production path, so
+ *      route data tracks the real feeds instead of hand-authored coordinates.
+ *   2. The bundled catalog otherwise — offline fallback, and what CI validates on
+ *      every PR so a catalog that can't assemble or validate never merges.
  *
  *   npm run build:catalog -- 1.4.0        # or CATALOG_VERSION=1.4.0 npm run build:catalog
+ *   MOBILITY_DATABASE_REFRESH_TOKEN=… npm run build:catalog -- 2.0.0   # from live GTFS
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -22,6 +24,7 @@ import {
   type PresetCatalog,
   type PresetManifest,
 } from "../src/lib/presets/index";
+import { assembleCatalog } from "../src/gtfs";
 
 export type BuildCatalogOptions = {
   version: string;
@@ -31,6 +34,16 @@ export type BuildCatalogOptions = {
   /** Public URL the versioned file will be served from (recorded in the manifest). */
   url?: string;
 };
+
+export function makeManifest(opts: BuildCatalogOptions): PresetManifest {
+  return {
+    latestVersion: opts.version,
+    schemaVersion: PRESET_SCHEMA_VERSION,
+    publishedAt: opts.generatedAt,
+    summary: opts.summary ?? "",
+    url: opts.url ?? "",
+  };
+}
 
 export function buildCatalog(opts: BuildCatalogOptions): {
   catalog: PresetCatalog;
@@ -43,26 +56,35 @@ export function buildCatalog(opts: BuildCatalogOptions): {
     version: opts.version,
     generatedAt: opts.generatedAt,
   });
-  const manifest: PresetManifest = {
-    latestVersion: opts.version,
-    schemaVersion: PRESET_SCHEMA_VERSION,
-    publishedAt: opts.generatedAt,
-    summary: opts.summary ?? "",
-    url: opts.url ?? "",
-  };
-  return { catalog, manifest };
+  return { catalog, manifest: makeManifest(opts) };
 }
 
 export const CATALOG_FILENAME = `presets.v${PRESET_SCHEMA_VERSION}.json`;
 
-function main() {
+async function main() {
   const version = process.env.CATALOG_VERSION ?? process.argv[2] ?? "0.0.0-dev";
-  const { catalog, manifest } = buildCatalog({
+  const opts: BuildCatalogOptions = {
     version,
     generatedAt: new Date().toISOString(),
     summary: process.env.CATALOG_SUMMARY,
     url: process.env.CATALOG_URL,
-  });
+  };
+
+  const refreshToken = process.env.MOBILITY_DATABASE_REFRESH_TOKEN;
+  let catalog: PresetCatalog;
+  let manifest: PresetManifest;
+  if (refreshToken) {
+    console.log("Assembling catalog from live Mobility Database GTFS feeds…");
+    catalog = await assembleCatalog({
+      refreshToken,
+      version: opts.version,
+      generatedAt: opts.generatedAt,
+    });
+    manifest = makeManifest(opts);
+  } else {
+    console.log("MOBILITY_DATABASE_REFRESH_TOKEN not set — building from the bundled catalog.");
+    ({ catalog, manifest } = buildCatalog(opts));
+  }
 
   const outDir = join(process.cwd(), "catalog-dist");
   mkdirSync(outDir, { recursive: true });
@@ -76,5 +98,8 @@ function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main();
+  main().catch((cause) => {
+    console.error(cause instanceof Error ? cause.message : cause);
+    process.exit(1);
+  });
 }

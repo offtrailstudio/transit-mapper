@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyPresetRoute } from "../../legacy";
 
-export const waterburyBranch: PresetRoute = {
+export const waterburyBranch: LegacyPresetRoute = {
   id: "mnr-waterbury-branch",
   name: "Waterbury Branch",
   color: "#EE0034",

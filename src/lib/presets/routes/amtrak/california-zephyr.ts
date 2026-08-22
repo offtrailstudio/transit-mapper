@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyPresetRoute } from "../../legacy";
 
-export const californiaZephyr: PresetRoute = {
+export const californiaZephyr: LegacyPresetRoute = {
   id: "amtrak-california-zephyr",
   name: "California Zephyr",
   groupId: "amtrak",
