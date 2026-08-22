@@ -103,3 +103,35 @@ export function remoteRouteSource(url: string, init?: RequestInit): RouteSource 
     },
   };
 }
+
+/**
+ * A live {@link RouteSource} backed by a host endpoint that speaks the
+ * search/resolve protocol — pair it with `createMobilityDatabaseHandler` from
+ * `@offtrailstudio/transit-mapper/gtfs`, which the host mounts (holding the
+ * Mobility Database token). This client is dependency-free (just `fetch`), so it
+ * stays in the browser bundle; the heavy GTFS parsing runs server-side behind the
+ * endpoint. Lets users search real networks and add any route.
+ */
+export function mobilityDatabaseRouteSource(config: {
+  /** URL of the mounted handler, e.g. "/api/routes". */
+  endpoint: string;
+  label?: string;
+}): RouteSource {
+  const { endpoint, label = "Mobility Database" } = config;
+  const call = async <T>(
+    params: Record<string, string>,
+    signal?: AbortSignal
+  ): Promise<T> => {
+    const url = `${endpoint}?${new URLSearchParams(params).toString()}`;
+    const res = await fetch(url, { signal });
+    if (!res.ok) {
+      throw new Error(`Route request failed (${res.status} ${res.statusText})`);
+    }
+    return (await res.json()) as T;
+  };
+  return {
+    label,
+    search: (query, opts) => call<RouteSummary[]>({ op: "search", q: query }, opts?.signal),
+    resolve: (id, opts) => call<ResolvedRoute>({ op: "resolve", id }, opts?.signal),
+  };
+}

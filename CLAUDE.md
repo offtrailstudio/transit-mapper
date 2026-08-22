@@ -16,33 +16,41 @@ sim speed + picker label. GTFS `route_type` is an integer space; the mapping
 (basic 0–12 + extended HVT 100–1799) lives in `src/gtfs/routeType.ts`. `hsr`
 has no GTFS code except extended `101`, so basic-rail HSR is a per-feed override.
 
-## Preset catalog (the "Add a preset route" picker)
+## Adding routes: the `RouteSource` seam (the "Add a route" picker)
 
-The catalog is a normalized **v2** projection of `TransitMapData`:
-`{ schemaVersion: 2, groups, stops[], routes[] with patterns[] of stopIds }`.
-Defined in `src/lib/presets/catalog.ts`; JSON Schema in `presets.schema.json`.
+The picker (`src/components/sidebar/AddRouteModal.tsx`) is **search-first** and
+written against one interface: `RouteSource` (`search(query) → RouteSummary[]`,
+`resolve(id) → ResolvedRoute`), in `src/lib/presets/routeSource.ts`. The host
+passes one via `MapDataProvider`'s `routeSource` prop (`RouteSourceProvider` /
+`useRouteSource`); default is the bundled catalog as a static source. Three impls:
 
-- Host-injectable via `MapDataProvider`'s `presets` prop (object or async loader);
-  `createRemotePresetLoader(url)` fetches + validates. Route data changes without
-  a package release.
-- `validatePresetCatalog` accepts v2 natively **and** upgrades a pinned v1
-  (`schemaVersion: 1`, flat stops) via `upgradeLegacyCatalog` — non-breaking.
-- Application to a map uses `resolvePresetRoute(catalog, route)` → a
-  `ResolvedPresetRoute` (primary pattern flattened to an inline stop list). The
-  reducer's `ADD_PRESET_ROUTE` and the picker/merge modals work on that.
-- **Legacy authoring bridge:** the bundled fallback routes in
-  `src/lib/presets/routes/<network>/` are the flat `LegacyPresetRoute` shape
-  (stops embedded), upgraded to v2 at assembly time. They're temporary — the
-  source of truth is moving to live GTFS. `PRESET_SCHEMA_VERSION` lives in
-  `types.ts` (leaf) to avoid a `legacy`↔`catalog` import cycle.
+- `staticRouteSource(catalog)` — in-memory search over a `RouteCatalog` (zero
+  backend). `remoteRouteSource(url)` — fetch+validate a hosted catalog, then static.
+- `mobilityDatabaseRouteSource({ endpoint })` — dependency-free client (just
+  `fetch`) that calls a host endpoint. Lives in the **main** bundle. Pairs with
+  `createMobilityDatabaseHandler` (server, `/gtfs` subpath) which holds the token
+  and parses feeds server-side, returning small JSON. Summary ids are
+  `${feedId}:${routeId}`; resolve derives the feed id from the prefix.
+
+The underlying **catalog** is still a normalized v2 projection of `TransitMapData`
+(`{ schemaVersion: 2, groups, stops[], routes[] with patterns[] of stopIds }`),
+`src/lib/presets/catalog.ts` + `presets.schema.json`. `validateRouteCatalog`
+accepts v2 and upgrades pinned v1 via `upgradeLegacyCatalog`. Applying a route
+uses `resolveCatalogRoute` → `ResolvedRoute` (primary pattern flattened); the
+reducer action is `ADD_CATALOG_ROUTE` (`route` field). The bundled fallback routes
+in `src/lib/presets/routes/<network>/` are the flat `LegacyRoute` shape, upgraded
+at assembly time — temporary; the source of truth is live GTFS. (Folder is still
+named `presets/`; only the symbols were renamed off "preset".)
 
 ## GTFS ingest (`src/gtfs/`, exported as `@offtrailstudio/transit-mapper/gtfs`)
 
 Server/build-time subpath export (`dist/gtfs.js`, kept out of the browser entry).
-The **host holds the Mobility Database token** and calls `assembleCatalog({
-refreshToken })` — same ownership model as the Mapbox token. `fflate`/`csv-parse`
-are **optional peerDependencies** (bunchee externalizes them; the `.` browser
-bundle never imports them). Kept in devDependencies so this repo builds/tests.
+The **host holds the Mobility Database token** — either it mounts
+`createMobilityDatabaseHandler({ refreshToken })` (live search) or calls
+`assembleCatalog({ refreshToken })` (build a static catalog) — same ownership
+model as the Mapbox token. `fflate`/`csv-parse` are **optional peerDependencies**
+(bunchee externalizes them; the `.` browser bundle never imports them). Kept in
+devDependencies so this repo builds/tests.
 
 Pipeline: `mobilityDatabase.ts` (token exchange `POST /v1/tokens/access`, feed
 lookup, no-auth `latest_dataset.hosted_url` download) → `parse.ts` (fflate unzip

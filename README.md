@@ -91,91 +91,74 @@ function Rail() {
 }
 ```
 
-### Preset routes
+### Adding real routes
 
-Preset routes (the **Add a preset route** modal) are **optional** and
-**host-supplied**. The modal groups routes by network, is searchable, and shows
-each route's default transit mode. Each route resolves a mode from, in order: its
-own `routeType`, its group's `defaultRouteType`, then the editor default.
-
-**The catalog is host-injectable so it isn't tied to the package version.** Pass
-your own catalog to `MapDataProvider`; omit it and the editor falls back to a
-small bundled catalog. Serve the catalog JSON from your own app so updating routes
-is a redeploy, not an `npm` release:
-
-```tsx
-import { createRemotePresetLoader } from "@offtrailstudio/transit-mapper";
-
-// Fetched lazily the first time the modal opens, then cached. The payload is
-// validated (see PresetCatalog / PRESET_SCHEMA_VERSION); a bad shape shows an
-// error with a retry rather than breaking the editor. Point it at a JSON file
-// your app serves (pin an immutable/versioned URL so an update never lands
-// silently).
-const loadPresets = createRemotePresetLoader("/presets.v2.json");
-
-<MapDataProvider presets={loadPresets}>…</MapDataProvider>;
-```
-
-`presets` accepts either a `PresetCatalog` object or a (sync or async) loader
-returning one. Omit it to use `DEFAULT_PRESET_CATALOG` (the bundled routes).
-
-**Building a catalog from live GTFS.** A server-only subpath,
-`@offtrailstudio/transit-mapper/gtfs`, assembles a validated catalog from real
-[Mobility Database](https://mobilitydatabase.org) feeds. Like the Mapbox token,
-the **host holds the Mobility Database token** and passes it in — the package
-provides the capability, your app provides the secret:
+The **Add a route** picker is search-first: the user types a network or route
+name, sees matching real routes, and clicks one onto the map. It's driven by a
+single pluggable **`RouteSource`** you pass to `MapDataProvider` — so the same UI
+works over a fixed catalog or a live, searchable data source.
 
 ```ts
-// Server/build-time only (e.g. a build script or a cached server route).
-import { assembleCatalog } from "@offtrailstudio/transit-mapper/gtfs";
+type RouteSource = {
+  search(query: string, opts?: { signal?: AbortSignal }): Promise<RouteSummary[]>;
+  resolve(id: string, opts?: { signal?: AbortSignal }): Promise<ResolvedRoute>;
+};
+```
 
-const catalog = await assembleCatalog({
-  refreshToken: process.env.MOBILITY_DATABASE_REFRESH_TOKEN!, // your app's env
+**1. Zero config.** Omit `routeSource` and the editor searches a small bundled
+catalog — a good demo, but "just a few routes".
+
+**2. Your own catalog.** Wrap a catalog (or a hosted JSON URL) in a static source:
+
+```tsx
+import { staticRouteSource, remoteRouteSource } from "@offtrailstudio/transit-mapper";
+
+<MapDataProvider routeSource={staticRouteSource(myCatalog)}>…</MapDataProvider>
+// or fetch + validate + cache a hosted catalog JSON:
+<MapDataProvider routeSource={remoteRouteSource("/routes.v2.json")}>…</MapDataProvider>
+```
+
+**3. Live Mobility Database — any real route.** To let users search *all* of the
+[Mobility Database](https://mobilitydatabase.org), pair a client source with a
+server handler you mount. Like the Mapbox token, **your app holds the Mobility
+Database token**; the package provides the handler. Parsing runs server-side, so
+the browser only sees small JSON (no multi-MB feeds, no CORS).
+
+```tsx
+// Client:
+import { mobilityDatabaseRouteSource } from "@offtrailstudio/transit-mapper";
+<MapDataProvider routeSource={mobilityDatabaseRouteSource({ endpoint: "/api/routes" })}>…</MapDataProvider>
+```
+
+```ts
+// Server — e.g. a Next.js route handler at app/api/routes/route.ts. It holds the
+// token and does the GTFS parsing. Needs the optional peer deps fflate + csv-parse.
+import { createMobilityDatabaseHandler } from "@offtrailstudio/transit-mapper/gtfs";
+export const GET = createMobilityDatabaseHandler({
+  refreshToken: process.env.MOBILITY_DATABASE_REFRESH_TOKEN!,
 });
-// Write catalog to a JSON file you serve, or return it from a cached endpoint,
-// then load it in the client with createRemotePresetLoader(...).
 ```
 
-The `/gtfs` entry needs `fflate` + `csv-parse` (optional peer deps — install them
-only if you build catalogs). It's kept out of the browser bundle. A free Mobility
-Database account provides the refresh token; without a catalog, presets simply
-stay empty (the modal still works). The repo's own `npm run build:catalog` wraps
-this same function for the bundled fallback + CI validation.
+The handler is a web-standard `(Request) => Response`, so it also runs on Hono,
+Bun, Deno, or Cloudflare Workers. Mobility Database search is agency-level, so a
+query matches a *network* (e.g. "Amtrak", "BART") and returns its routes; parsed
+feeds are cached per process (put a CDN in front for shared caching).
 
-To offer only some of the *visible* networks, pass a `presetGroups` allowlist of
-group ids:
+**Restrict the offered networks** by id (works for any source that populates
+`networkId`):
 
 ```tsx
-<EditorConfigProvider config={{ mapboxToken, presetGroups: ["amtrak"] }}>
+<EditorConfigProvider config={{ mapboxToken, routeNetworks: ["amtrak"] }}>
 ```
 
-An empty array hides every preset.
+**Build a static catalog from live GTFS** (server/build-time) with
+`assembleCatalog({ refreshToken })` from the `/gtfs` subpath — write the result
+to a JSON file and serve it via `remoteRouteSource`. The repo's own
+`npm run build:catalog` wraps this for the bundled fallback + CI validation.
 
-**Letting users paste a GTFS link (opt-in).** The picker can show a field where
-a user pastes any no-auth GTFS `.zip` URL (including a Mobility Database
-`latest_dataset.hosted_url`); its routes are fetched, parsed, and transformed in
-the browser and added to the picker. It's **off by default** because it lazy-loads
-the GTFS parser, which needs two optional peer deps:
-
-```bash
-npm install fflate csv-parse
-```
-
-```tsx
-<EditorConfigProvider config={{ mapboxToken, enableFeedImport: true }}>
-```
-
-The parser loads only when someone actually pastes a link (a dynamic `import()`),
-so it never touches your initial bundle. Note: the browser fetches the feed
-directly, so a host without CORS headers will fail — the control surfaces that
-inline. For always-on reliability, proxy the download through your own app and
-have users paste the proxied URL.
-
-`PRESET_LINES`, `PRESET_GROUPS`,
-`DEFAULT_PRESET_CATALOG`, `groupPresetRoutes`, `resolvePresetRouteType`,
-`validatePresetCatalog`, `createRemotePresetLoader`, and `ROUTE_TYPES` (the valid
-`routeType` values) are all exported if you want to build your own catalog or
-picker.
+`staticRouteSource`, `remoteRouteSource`, `mobilityDatabaseRouteSource`,
+`BUNDLED_ROUTE_CATALOG`, `validateRouteCatalog`, `resolveCatalogRoute`, and
+`ROUTE_TYPES` are all exported if you want to build your own source or catalog.
 
 ## Tailwind
 

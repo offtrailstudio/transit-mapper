@@ -55,6 +55,7 @@ export type { TransitMapData } from "./lib/types";
 export {
   staticRouteSource,
   remoteRouteSource,
+  mobilityDatabaseRouteSource,
   BUNDLED_ROUTES,
   BUNDLED_NETWORKS,
   BUNDLED_ROUTE_CATALOG,
