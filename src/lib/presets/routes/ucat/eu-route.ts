@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyRoute } from "../../legacy";
 
-export const euRoute: PresetRoute = {
+export const euRoute: LegacyRoute = {
   id: "ucat-eu-route",
   name: "EU Route",
   color: "#E4572E",

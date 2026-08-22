@@ -2,7 +2,7 @@ import { nextRouteColor } from "./colors";
 import { DEFAULT_ROUTE_TYPE, defaultHeadwayForRouteType, defaultRouteTypes } from "./lineKinds";
 import { primaryStopIds, updatePrimaryStopIds } from "./lines";
 import { normalizeMapData } from "./migrate";
-import { PresetRoute } from "./presets/types";
+import { ResolvedRoute } from "./presets/catalog";
 import { EMPTY_MAP_DATA, Route, RouteType, Stop, TransitMapData } from "./types";
 
 export type EditorState = {
@@ -18,7 +18,7 @@ export const initialEditorState: EditorState = {
 export type Action =
   | { type: "LOAD"; data: TransitMapData }
   | { type: "ADD_ROUTE" }
-  | { type: "ADD_PRESET_ROUTE"; preset: PresetRoute; merges?: Record<number, string> }
+  | { type: "ADD_CATALOG_ROUTE"; route: ResolvedRoute; merges?: Record<number, string> }
   | { type: "ADD_STOP"; lng: number; lat: number; name?: string; routeId?: string }
   | { type: "ADD_STOP_TO_ROUTE"; routeId: string; stopId: string }
   | { type: "REORDER_STOP"; routeId: string; index: number; direction: "up" | "down" }
@@ -71,13 +71,13 @@ export function mapReducer(state: EditorState, action: Action): EditorState {
       };
     }
 
-    case "ADD_PRESET_ROUTE": {
+    case "ADD_CATALOG_ROUTE": {
       const merges = action.merges ?? {};
       const existingIds = new Set(state.data.stops.map((p) => p.id));
       // A stop with a valid merge target reuses that station's id instead of
       // minting a duplicate; every other stop becomes a fresh stop.
       const newStops: Stop[] = [];
-      const stopIds = action.preset.stops.map((stop, index) => {
+      const stopIds = action.route.stops.map((stop, index) => {
         const mergeId = merges[index];
         if (mergeId && existingIds.has(mergeId)) {
           return mergeId;
@@ -86,11 +86,11 @@ export function mapReducer(state: EditorState, action: Action): EditorState {
         newStops.push(newStop);
         return newStop.id;
       });
-      const routeType = action.preset.routeType ?? DEFAULT_ROUTE_TYPE;
+      const routeType = action.route.routeType ?? DEFAULT_ROUTE_TYPE;
       const newRoute: Route = {
         id: createId(),
-        name: action.preset.name,
-        routeColor: action.preset.color ?? nextRouteColor(state.data.routes.length),
+        name: action.route.name,
+        routeColor: action.route.color ?? nextRouteColor(state.data.routes.length),
         routeType,
         headwayMin: defaultHeadwayForRouteType(routeType),
         patterns: [{ id: createId(), stopIds }],

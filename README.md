@@ -91,48 +91,74 @@ function Rail() {
 }
 ```
 
-### Preset routes
+### Adding real routes
 
-The editor ships a catalog of real-world networks (Amtrak, Metro-North, …) that
-users can drop onto a map from the **Add a preset route** modal. The modal groups
-routes by network, is searchable, and shows each route's default transit mode.
-Each route resolves a transit mode from, in order: its own `routeType`, its
-group's `defaultRouteType`, then the editor default.
+The **Add a route** picker is search-first: the user types a network or route
+name, sees matching real routes, and clicks one onto the map. It's driven by a
+single pluggable **`RouteSource`** you pass to `MapDataProvider` — so the same UI
+works over a fixed catalog or a live, searchable data source.
 
-**The catalog is host-injectable so it isn't tied to the package version.** Route
-data changes far more often than editor code (new networks, moved stops), so pass
-your own catalog to `MapDataProvider` instead of relying on the bundled one — then
-updating routes is a redeploy of a JSON file, not an `npm` release:
-
-```tsx
-import { createRemotePresetLoader } from "@offtrailstudio/transit-mapper";
-
-// Fetched lazily the first time the modal opens, then cached. The payload is
-// validated (see PresetCatalog / PRESET_SCHEMA_VERSION); a bad shape shows an
-// error with a retry rather than breaking the editor. Pin to an immutable tag so
-// a catalog update never lands silently — bump the tag when you choose to pull it.
-const loadPresets = createRemotePresetLoader(
-  "https://cdn.jsdelivr.net/gh/offtrailstudio/transit-networks@v1.0.0/presets.v1.json",
-);
-
-<MapDataProvider presets={loadPresets}>…</MapDataProvider>;
+```ts
+type RouteSource = {
+  search(query: string, opts?: { signal?: AbortSignal }): Promise<RouteSummary[]>;
+  resolve(id: string, opts?: { signal?: AbortSignal }): Promise<ResolvedRoute>;
+};
 ```
 
-`presets` accepts either a `PresetCatalog` object or a (sync or async) loader
-returning one. Omit it to use `DEFAULT_PRESET_CATALOG` (the bundled routes).
+**1. Zero config.** Omit `routeSource` and the editor searches a small bundled
+catalog — a good demo, but "just a few routes".
 
-To offer only some of the *visible* networks, pass a `presetGroups` allowlist of
-group ids:
+**2. Your own catalog.** Wrap a catalog (or a hosted JSON URL) in a static source:
 
 ```tsx
-<EditorConfigProvider config={{ mapboxToken, presetGroups: ["amtrak"] }}>
+import { staticRouteSource, remoteRouteSource } from "@offtrailstudio/transit-mapper";
+
+<MapDataProvider routeSource={staticRouteSource(myCatalog)}>…</MapDataProvider>
+// or fetch + validate + cache a hosted catalog JSON:
+<MapDataProvider routeSource={remoteRouteSource("/routes.v2.json")}>…</MapDataProvider>
 ```
 
-An empty array hides every preset. `PRESET_LINES`, `PRESET_GROUPS`,
-`DEFAULT_PRESET_CATALOG`, `groupPresetRoutes`, `resolvePresetRouteType`,
-`validatePresetCatalog`, `createRemotePresetLoader`, and `ROUTE_TYPES` (the valid
-`routeType` values) are all exported if you want to build your own catalog or
-picker.
+**3. Live Mobility Database — any real route.** To let users search *all* of the
+[Mobility Database](https://mobilitydatabase.org), pair a client source with a
+server handler you mount. Like the Mapbox token, **your app holds the Mobility
+Database token**; the package provides the handler. Parsing runs server-side, so
+the browser only sees small JSON (no multi-MB feeds, no CORS).
+
+```tsx
+// Client:
+import { mobilityDatabaseRouteSource } from "@offtrailstudio/transit-mapper";
+<MapDataProvider routeSource={mobilityDatabaseRouteSource({ endpoint: "/api/routes" })}>…</MapDataProvider>
+```
+
+```ts
+// Server — e.g. a Next.js route handler at app/api/routes/route.ts. It holds the
+// token and does the GTFS parsing. Needs the optional peer deps fflate + csv-parse.
+import { createMobilityDatabaseHandler } from "@offtrailstudio/transit-mapper/gtfs";
+export const GET = createMobilityDatabaseHandler({
+  refreshToken: process.env.MOBILITY_DATABASE_REFRESH_TOKEN!,
+});
+```
+
+The handler is a web-standard `(Request) => Response`, so it also runs on Hono,
+Bun, Deno, or Cloudflare Workers. Mobility Database search is agency-level, so a
+query matches a *network* (e.g. "Amtrak", "BART") and returns its routes; parsed
+feeds are cached per process (put a CDN in front for shared caching).
+
+**Restrict the offered networks** by id (works for any source that populates
+`networkId`):
+
+```tsx
+<EditorConfigProvider config={{ mapboxToken, routeNetworks: ["amtrak"] }}>
+```
+
+**Build a static catalog from live GTFS** (server/build-time) with
+`assembleCatalog({ refreshToken })` from the `/gtfs` subpath — write the result
+to a JSON file and serve it via `remoteRouteSource`. The repo's own
+`npm run build:catalog` wraps this for the bundled fallback + CI validation.
+
+`staticRouteSource`, `remoteRouteSource`, `mobilityDatabaseRouteSource`,
+`BUNDLED_ROUTE_CATALOG`, `validateRouteCatalog`, `resolveCatalogRoute`, and
+`ROUTE_TYPES` are all exported if you want to build your own source or catalog.
 
 ## Tailwind
 

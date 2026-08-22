@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyRoute } from "../../legacy";
 
-export const acela: PresetRoute = {
+export const acela: LegacyRoute = {
   id: "amtrak-acela",
   name: "Acela",
   routeType: "hsr",

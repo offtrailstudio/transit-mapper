@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyRoute } from "../../legacy";
 
-export const harlemLine: PresetRoute = {
+export const harlemLine: LegacyRoute = {
   id: "mnr-harlem-line",
   name: "Harlem Line",
   color: "#0039A6",

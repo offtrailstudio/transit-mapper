@@ -1,6 +1,6 @@
-import { PresetRoute } from "./types";
-import { PRESET_GROUPS } from "./groups";
-import { PresetCatalog, PRESET_SCHEMA_VERSION } from "./catalog";
+import { BUNDLED_NETWORKS } from "./groups";
+import { RouteCatalog } from "./catalog";
+import { LegacyRoute, upgradeLegacyCatalog } from "./legacy";
 import { northeastRegional } from "./routes/amtrak/northeast-regional";
 import { acela } from "./routes/amtrak/acela";
 import { keystoneService } from "./routes/amtrak/keystone-service";
@@ -66,7 +66,7 @@ import { dutchessRouteE } from "./routes/dutchess-county/route-e";
 import { dutchessRouteF } from "./routes/dutchess-county/route-f";
 import { dutchessRouteG } from "./routes/dutchess-county/route-g";
 
-export const PRESET_LINES: PresetRoute[] = [
+export const BUNDLED_ROUTES: LegacyRoute[] = [
   northeastRegional,
   acela,
   keystoneService,
@@ -136,16 +136,18 @@ export const PRESET_LINES: PresetRoute[] = [
 /**
  * The catalog the editor falls back to when a host injects nothing — the same
  * routes that shipped before presets became injectable, so a bare embed is
- * unchanged. Hosts that expect frequent changes should serve their own catalog
- * (see `createRemotePresetLoader`) instead of relying on this.
+ * unchanged. Authored in the flat legacy shape and lifted to the normalized v2
+ * catalog at assembly time. Hosts that expect frequent changes should serve
+ * their own catalog (see `createRemotePresetLoader`) instead of relying on this.
  */
-export const DEFAULT_PRESET_CATALOG: PresetCatalog = {
-  schemaVersion: PRESET_SCHEMA_VERSION,
-  groups: PRESET_GROUPS,
-  routes: PRESET_LINES,
-};
+export const BUNDLED_ROUTE_CATALOG: RouteCatalog = upgradeLegacyCatalog({
+  groups: BUNDLED_NETWORKS,
+  routes: BUNDLED_ROUTES,
+});
 
 export * from "./types";
 export * from "./groups";
 export * from "./groupLines";
 export * from "./catalog";
+export * from "./legacy";
+export * from "./routeSource";

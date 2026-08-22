@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyRoute } from "../../legacy";
 
-export const heartlandFlyer: PresetRoute = {
+export const heartlandFlyer: LegacyRoute = {
   id: "amtrak-heartland-flyer",
   name: "Heartland Flyer",
   groupId: "amtrak",

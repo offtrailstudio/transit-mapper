@@ -4,18 +4,18 @@ import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Modal } from "../Modal";
 import { StationMergeCandidate } from "../../lib/presetMerge";
-import { PresetRoute } from "../../lib/presets";
+import { ResolvedRoute } from "../../lib/presets";
 
 export function MergeStationsModal({
   open,
-  preset,
+  route,
   candidates,
   onBack,
   onConfirm,
   onClose,
 }: {
   open: boolean;
-  preset: PresetRoute;
+  route: ResolvedRoute;
   candidates: StationMergeCandidate[];
   onBack: () => void;
   onConfirm: (merges: Record<number, string>) => void;
@@ -52,7 +52,7 @@ export function MergeStationsModal({
   return (
     <Modal open={open} onClose={onClose} title="Merge shared stations">
       <p className="mb-3 text-sm text-neutral-500 dark:text-neutral-400">
-        {preset.name} passes through {shared} station{shared === 1 ? "" : "s"} already on your map.
+        {route.name} passes through {shared} station{shared === 1 ? "" : "s"} already on your map.
         Checked stops reuse the existing station instead of adding a duplicate.
       </p>
 

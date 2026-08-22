@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyRoute } from "../../legacy";
 
-export const pascackValleyLine: PresetRoute = {
+export const pascackValleyLine: LegacyRoute = {
   id: "mnr-pascack-valley-line",
   name: "Pascack Valley Line",
   color: "#8E258D",

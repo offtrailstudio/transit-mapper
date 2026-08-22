@@ -23,24 +23,37 @@ Testing Library (jsdom); anything that renders the map mocks `react-map-gl`.
 - Keep the domain model GTFS-shaped; keep presentation/derived state out of it.
 - The public API is `src/index.ts` — add exports there when you expose something.
 
-## Adding a preset route
+## Route data (the "Add a route" picker)
 
-Preset routes (the networks in the "Add a preset route" picker) live in
-`src/lib/presets/routes/<network>/`. To add one:
+The picker searches a `RouteSource` (see the README). Routes ultimately come from
+a normalized, GTFS-aligned **v2** `RouteCatalog` (`schemaVersion: 2`): a shared
+`stops` table plus `routes` whose ordered sequences live in `patterns` — a strict
+projection of the editor's own `TransitMapData`. See `presets.schema.json` and
+`src/lib/presets/catalog.ts`.
 
-1. Add a `PresetRoute` file under the right network folder and register it in
-   `src/lib/presets/index.ts`. If it's a new network, add a `PresetGroup` to
-   `groups.ts` (give it a `defaultRouteType` so every route in it gets a transit
-   mode). `presets.schema.json` documents the shape.
-2. Run `npm run build:catalog` — it assembles the catalog, runs
-   `validatePresetCatalog`, and writes `catalog-dist/`. This is what CI checks, so
-   a transposed lng/lat or a route with fewer than two stops fails the build.
-3. `npm test` covers the catalog invariants (unique ids, plausible coordinates).
+Two ways a static catalog gets built:
 
-> The catalog is **host-injectable** — apps can serve their own via
-> `MapDataProvider`'s `presets` prop. The bundled catalog here is the default
-> fallback; over time the source of truth moves to a dedicated data repo that
-> reuses this same `build-catalog` script and schema.
+- **From live GTFS (preferred).** `src/gtfs/` ingests feeds from the
+  [Mobility Database](https://mobilitydatabase.org): the curated networks live in
+  `src/gtfs/networks.ts`. Set `MOBILITY_DATABASE_REFRESH_TOKEN` (from your
+  account, in `.env.local` — never commit it) and run `npm run build:catalog` to
+  assemble `catalog-dist/` from real feeds. Each route's trips collapse to
+  representative patterns; GTFS `route_type` maps to the editor's mode via
+  `src/gtfs/routeType.ts` (routes with no editor equivalent are dropped).
+- **From the bundled fallback.** Without the token, `build:catalog` builds from
+  the hand-authored routes in `src/lib/presets/routes/<network>/`. Those use the
+  flat **legacy** authoring shape (`LegacyRoute`, stops embedded per route) and
+  are upgraded to v2 by `upgradeLegacyCatalog`. To add one, drop a `LegacyRoute`
+  file under the right network folder, register it in `src/lib/presets/index.ts`,
+  and add a `RouteNetwork` to `groups.ts` for a new network.
+
+Either way, `npm run build:catalog` runs `validateRouteCatalog` (a bad
+coordinate, a <2-stop pattern, or a dangling stop reference fails the build) and
+`npm test` covers the catalog + GTFS-transform invariants. For *live* search
+(any route, not just the bundled set), a host mounts
+`createMobilityDatabaseHandler` and passes `mobilityDatabaseRouteSource` to
+`MapDataProvider`'s `routeSource` prop; the bundled catalog is the zero-config
+fallback. A pre-v2 catalog a host already pinned is auto-upgraded on load.
 
 ## Pull requests
 

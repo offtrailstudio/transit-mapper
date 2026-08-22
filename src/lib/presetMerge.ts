@@ -1,6 +1,8 @@
-import { PresetStop } from "./presets/types";
 import { approxMetersBetween, STATION_MERGE_METERS } from "./stationClusters";
 import { Stop } from "./types";
+
+/** The geographic minimum the merge check needs — a resolved preset stop supplies it. */
+export type MergeStop = { name: string; lng: number; lat: number };
 
 /**
  * A preset stop that lands on top of a station already on the map — the same
@@ -10,7 +12,7 @@ import { Stop } from "./types";
  */
 export type StationMergeCandidate = {
   stopIndex: number;
-  stop: PresetStop;
+  stop: MergeStop;
   existingStop: Stop;
   distanceMeters: number;
 };
@@ -21,9 +23,9 @@ export type StationMergeCandidate = {
  * stations. Matching is by proximity, not name, mirroring how the geometry
  * layer already decides two stops are the same station.
  */
-export function findPresetMergeCandidates(
+export function findRouteMergeCandidates(
   existingStops: Stop[],
-  stops: PresetStop[],
+  stops: MergeStop[],
   thresholdMeters: number = STATION_MERGE_METERS
 ): StationMergeCandidate[] {
   const candidates: StationMergeCandidate[] = [];

@@ -15,8 +15,8 @@ import {
 } from "../lib/projects";
 import { CloudMap } from "../lib/cloudSync";
 import { EMPTY_MAP_DATA, TransitMapData } from "../lib/types";
-import { PresetSource } from "../lib/presets";
-import { PresetsProvider } from "./PresetsContext";
+import { RouteSource } from "../lib/presets";
+import { RouteSourceProvider } from "./RouteSourceContext";
 
 export type ProjectSummary = { id: string; title: string; data: TransitMapData };
 
@@ -85,7 +85,7 @@ export function MapDataProvider({
   loadInitial,
   persist,
   useSync = useNoCloudSync,
-  presets,
+  routeSource,
 }: {
   children: React.ReactNode;
   /**
@@ -102,12 +102,12 @@ export function MapDataProvider({
    */
   useSync?: UseCloudSync;
   /**
-   * The preset-route catalog for the "Add a preset route" picker: an object, or a
-   * (possibly async) loader fetched lazily on first open. Default: the catalog
-   * bundled with the package. Serve your own (see `createRemotePresetLoader`) so
-   * adding networks or nudging stops doesn't require a package release.
+   * Where the "Add a route" picker gets real routes to search and add. Default:
+   * the bundled catalog as a static source. Pass `staticRouteSource(catalog)` to
+   * serve your own catalog, or a live `RouteSource` (e.g. a Mobility Database
+   * source) to let users add any real route.
    */
-  presets?: PresetSource;
+  routeSource?: RouteSource;
 }) {
   const [history, dispatch] = useReducer(historyReducer, initialHistoryState);
   const state = history.present;
@@ -267,7 +267,7 @@ export function MapDataProvider({
         saveActiveMap,
       }}
     >
-      <PresetsProvider source={presets}>{children}</PresetsProvider>
+      <RouteSourceProvider source={routeSource}>{children}</RouteSourceProvider>
     </MapDataContext.Provider>
   );
 }

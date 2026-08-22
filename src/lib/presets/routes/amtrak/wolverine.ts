@@ -1,6 +1,6 @@
-import { PresetRoute } from "../../types";
+import { LegacyRoute } from "../../legacy";
 
-export const wolverine: PresetRoute = {
+export const wolverine: LegacyRoute = {
   id: "amtrak-wolverine",
   name: "Wolverine",
   groupId: "amtrak",

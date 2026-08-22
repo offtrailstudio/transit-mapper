@@ -1,6 +1,6 @@
-import { PresetGroup } from "./types";
+import { RouteNetwork } from "./types";
 
-export const PRESET_GROUPS: PresetGroup[] = [
+export const BUNDLED_NETWORKS: RouteNetwork[] = [
   {
     id: "amtrak",
     name: "Amtrak",
