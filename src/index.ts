@@ -17,7 +17,6 @@ export {
   RailTopDivider,
   UndoButton,
   RedoButton,
-  SimulateButton,
   ExportButton,
 } from "./components/rail/railKit";
 export { RAIL_ASIDE, RAIL_BUTTON, RAIL_ICON_SIZE } from "./components/rail/railStyles";

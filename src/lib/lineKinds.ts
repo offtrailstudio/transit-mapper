@@ -16,12 +16,12 @@ export const ROUTE_TYPE_DEFAULTS: Record<
   RouteType,
   { label: string; speedKmh: number; headwayMin: number }
 > = {
-  bus: { label: "Bus", speedKmh: 20, headwayMin: 10 },
-  tram: { label: "Tram", speedKmh: 22, headwayMin: 8 },
-  subway: { label: "Subway", speedKmh: 35, headwayMin: 5 },
-  ferry: { label: "Ferry", speedKmh: 35, headwayMin: 25 },
-  rail: { label: "Regional rail", speedKmh: 60, headwayMin: 20 },
-  hsr: { label: "High-speed rail", speedKmh: 200, headwayMin: 45 },
+  bus: { label: "Bus", speedKmh: 50, headwayMin: 10 },
+  tram: { label: "Tram", speedKmh: 30, headwayMin: 8 },
+  subway: { label: "Subway", speedKmh: 30, headwayMin: 5 },
+  ferry: { label: "Ferry", speedKmh: 25, headwayMin: 25 },
+  rail: { label: "Regional rail", speedKmh: 80, headwayMin: 20 },
+  hsr: { label: "High-speed rail", speedKmh: 240, headwayMin: 45 },
 };
 
 export function defaultRouteTypes(): Record<RouteType, RouteTypeSettings> {

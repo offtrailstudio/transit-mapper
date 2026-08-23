@@ -24,7 +24,7 @@ export function MapEditor() {
   const { mapboxToken } = useEditorConfig();
   const { dispatch } = useMapData();
   const { pinRouteId, cancelPinMode } = usePinMode();
-  const { active: simActive } = useSimMode();
+  const { editingLocked } = useSimMode();
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const colorScheme = useColorScheme();
 
@@ -45,8 +45,9 @@ export function MapEditor() {
     setSelectedStationId(null);
     // Only place a stop when the user explicitly asked to; otherwise a click is
     // just a click, and panning or dismissing a popup no longer drops a station.
-    // Simulation mode is a presentation state, so editing is off entirely.
-    if (!pinRouteId || simActive) {
+    // A running simulation is a presentation state, so editing is off while
+    // the clock plays or a focused mode owns the map.
+    if (!pinRouteId || editingLocked) {
       return;
     }
     dispatch({
@@ -73,12 +74,9 @@ export function MapEditor() {
     >
       <RoutesLayer />
       <StationsLayer onSelectStation={setSelectedStationId} />
-      {simActive && (
-        <>
-          <VehiclesLayer />
-          <FollowCamera />
-        </>
-      )}
+      {/* Always mounted: the simulation is never off, only paused. */}
+      <VehiclesLayer />
+      <FollowCamera />
       {selectedStationId && (
         <StationPopup
           stopId={selectedStationId}

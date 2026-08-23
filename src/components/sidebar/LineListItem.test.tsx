@@ -27,9 +27,8 @@ const DATA: TransitMapData = {
 };
 
 function Harness({ data }: { data: TransitMapData }) {
-  const { enter, setViewMode, setFocusRoute } = useSimMode();
+  const { setViewMode, setFocusRoute } = useSimMode();
   const go = (mode: SimViewMode) => () => {
-    enter();
     setFocusRoute("a");
     setViewMode(mode);
   };

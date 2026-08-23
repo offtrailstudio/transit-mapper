@@ -1,20 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Pause, Play, RotateCcw, Settings, X } from "lucide-react";
+import { Pause, Play, RotateCcw, Settings } from "lucide-react";
 import { formatSimClock, useSimMode } from "../../context/SimModeContext";
 import { SimSettingsModal } from "./SimSettingsModal";
 import { SpeedMenu } from "./SpeedMenu";
-import { ViewModeMenu } from "./ViewModeMenu";
 
-/** Bottom overlay bar shown while the simulation is running (desktop + mobile). */
+/**
+ * The playback bar (desktop + mobile), always on screen: the simulation is never
+ * off, only paused, so this is the transport for a clock that's always there.
+ * Playback only — which of the three views is showing is picked by the
+ * `ViewModeMenu` pill in the map's top-left, so the bar stays the clock's
+ * transport and the mode sits with the map it changes.
+ */
 export function SimControls() {
-  const { active, playing, displaySeconds, togglePlay, reset, exit } = useSimMode();
+  const { playing, displaySeconds, togglePlay, reset } = useSimMode();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  if (!active) {
-    return null;
-  }
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-4 z-40 flex justify-center px-4">
@@ -34,8 +35,6 @@ export function SimControls() {
 
         <SpeedMenu />
 
-        <ViewModeMenu />
-
         <button
           type="button"
           onClick={reset}
@@ -53,16 +52,6 @@ export function SimControls() {
           className="rounded-full bg-white/15 p-2 hover:bg-white/25"
         >
           <Settings size={16} />
-        </button>
-
-        <button
-          type="button"
-          onClick={exit}
-          aria-label="Exit simulation"
-          title="Exit (Esc)"
-          className="rounded-full bg-white/15 p-2 hover:bg-white/25"
-        >
-          <X size={16} />
         </button>
       </div>
 

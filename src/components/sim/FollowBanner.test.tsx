@@ -36,15 +36,13 @@ const TIMELINE = buildFollowTimeline(
 )!;
 const MID_FIRST_HOP = (TIMELINE.departures[0] + TIMELINE.arrivals[1]) / 2;
 
-/** Pauses playback, then parks the clock at `seek` so the next frame samples it. */
+/** Parks the paused clock at `seek` and publishes it, the way a reset would. */
 function Harness({ seek }: { seek: number }) {
-  const { enter, setViewMode, setFocusRoute, setMultiplier, togglePlay, playing, simSecondsRef } =
-    useSimMode();
+  const { setViewMode, setFocusRoute, setMultiplier, simSecondsRef, publishFrame } = useSimMode();
   return (
     <div>
       <button
         onClick={() => {
-          enter();
           setMultiplier(TEST_MULTIPLIER);
           setFocusRoute("red");
           setViewMode("follow");
@@ -54,10 +52,8 @@ function Harness({ seek }: { seek: number }) {
       </button>
       <button
         onClick={() => {
-          if (playing) {
-            togglePlay();
-          }
           simSecondsRef.current = seek;
+          publishFrame();
         }}
       >
         seek
