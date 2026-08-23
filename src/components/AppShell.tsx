@@ -4,8 +4,9 @@ import { useState } from "react";
 import { MapProvider } from "react-map-gl/mapbox";
 import { PinModeProvider } from "../context/PinModeContext";
 import { SimModeProvider } from "../context/SimModeContext";
-import { TimetableModeProvider } from "../context/TimetableModeContext";
 import { MobileTopBar } from "./MobileTopBar";
+import { FollowBanner } from "./sim/FollowBanner";
+import { FollowRoutePicker } from "./sim/FollowRoutePicker";
 import { SimControls } from "./sim/SimControls";
 import { TimetableView } from "./timetable/TimetableView";
 import { Sidebar } from "./sidebar/Sidebar";
@@ -32,7 +33,6 @@ export function AppShell({
     <MapProvider>
       <PinModeProvider>
       <SimModeProvider>
-      <TimetableModeProvider>
       {/* Mobile: a vertical column of floating cards — title bar, map, toolkit row. Desktop (md+): the classic three columns. Both get exterior padding + gaps so the panels read as cards on the page. (md keeps its historical flush edges between the two.) */}
       {/* h-dvh (dynamic viewport), not h-screen/100vh: on mobile 100vh measures the viewport with the browser chrome hidden, so the column overflows the visible area and pushes the bottom rail off-screen behind the URL bar. */}
       <div className="flex h-dvh w-screen flex-col gap-3 overflow-hidden p-3 md:flex-row md:gap-0 md:p-0 lg:gap-5 lg:p-5">
@@ -46,13 +46,14 @@ export function AppShell({
 
         <main className="relative min-h-0 flex-1 overflow-hidden rounded-xl md:overflow-visible md:rounded-none lg:overflow-hidden lg:rounded-xl">
           {children}
+          <FollowBanner />
+          <FollowRoutePicker />
           <SimControls />
           <TimetableView />
         </main>
 
         {rail}
       </div>
-      </TimetableModeProvider>
       </SimModeProvider>
       </PinModeProvider>
     </MapProvider>

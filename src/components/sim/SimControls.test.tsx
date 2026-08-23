@@ -2,14 +2,27 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-// SimSettingsModal reaches into MapData; stub it so this test stays about controls.
+// SimSettingsModal is a whole form over the map data; stub it so this test stays
+// about the control bar itself (it has its own test file).
 vi.mock("./SimSettingsModal", () => ({
   SimSettingsModal: () => null,
 }));
 
+const { SharedMapProvider } = await import("../../context/MapDataContext");
 const { SimModeProvider, useSimMode } = await import("../../context/SimModeContext");
-const { TimetableModeProvider } = await import("../../context/TimetableModeContext");
 const { SimControls } = await import("./SimControls");
+
+const DATA = {
+  version: 3 as const,
+  title: "Test",
+  stops: [
+    { id: "s1", name: "One", lng: 0, lat: 0 },
+    { id: "s2", name: "Two", lng: 0.05, lat: 0 },
+  ],
+  routes: [
+    { id: "a", name: "A Line", routeColor: "#f00", patterns: [{ id: "ap", stopIds: ["s1", "s2"] }] },
+  ],
+};
 
 function Harness() {
   const { enter } = useSimMode();
@@ -23,11 +36,11 @@ function Harness() {
 
 function renderControls() {
   return render(
-    <SimModeProvider>
-      <TimetableModeProvider>
+    <SharedMapProvider id="m1" data={DATA}>
+      <SimModeProvider>
         <Harness />
-      </TimetableModeProvider>
-    </SimModeProvider>
+      </SimModeProvider>
+    </SharedMapProvider>
   );
 }
 
@@ -43,7 +56,8 @@ describe("SimControls", () => {
 
     expect(screen.getByLabelText("Simulated time")).toHaveTextContent(/^\d{2}:\d{2}$/);
     expect(screen.getByLabelText("Pause")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /playback speed/i })).toHaveTextContent("5×");
+    // Opens at the fastest step: real time is too slow to read a network by.
+    expect(screen.getByRole("button", { name: /playback speed/i })).toHaveTextContent("60×");
   });
 
   it("selects a different multiplier from the speed menu", async () => {
@@ -68,5 +82,15 @@ describe("SimControls", () => {
     await userEvent.click(screen.getByLabelText("Pause"));
 
     expect(screen.getByLabelText("Play")).toBeInTheDocument();
+  });
+
+  it("carries the view menu but never the route picker", async () => {
+    // The bar holds playback controls only; the route lives in the top-right of
+    // whichever focused mode is showing, not down here.
+    renderControls();
+    await userEvent.click(screen.getByText("enter"));
+
+    expect(screen.getByRole("button", { name: "Simulation view" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /simulated route/i })).not.toBeInTheDocument();
   });
 });

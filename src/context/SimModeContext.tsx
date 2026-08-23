@@ -11,11 +11,26 @@ import {
 } from "react";
 
 export const SIM_MULTIPLIERS = [1, 2, 5, 10, 60];
-const DEFAULT_MULTIPLIER = 5;
+/**
+ * Real time is far too slow to read a network by: at 1× a bus barely crawls
+ * between stops, so the simulation opens at the fastest step and users step
+ * *down* if they want detail. Follow mode stays readable at any step because its
+ * stop dwell is measured in real seconds and scaled by this — see
+ * `followDwellSeconds`.
+ */
+const DEFAULT_MULTIPLIER = 60;
 /** The simulated clock reads as a time of day, starting from midnight. */
 const START_OF_DAY_SECONDS = 0;
 
 type FrameSubscriber = (simSeconds: number) => void;
+
+/**
+ * What the simulation is showing. All three run on the same clock — pause, speed
+ * and reset apply to every one — they differ only in what's on screen:
+ * `network` every route's vehicles on the map, `follow` one vehicle with the
+ * camera riding it, `timetable` that route's schedule instead of the map.
+ */
+export type SimViewMode = "network" | "follow" | "timetable";
 
 type SimModeContextValue = {
   active: boolean;
@@ -23,10 +38,22 @@ type SimModeContextValue = {
   multiplier: number;
   /** Elapsed simulated seconds, updated a few times a second for the clock (not every frame). */
   displaySeconds: number;
+  viewMode: SimViewMode;
+  /**
+   * The route `follow` rides and `timetable` tabulates — deliberately *shared* by
+   * the two, so switching between them keeps your subject instead of stranding
+   * you on some other route. Null means "not chosen yet"; resolve it through
+   * `useFocusRoute`, which falls back to the sidebar's active route.
+   */
+  focusRouteId: string | null;
+  /** Convenience for the follow machinery: the focused route, but only while following. */
+  followRouteId: string | null;
   enter: () => void;
   exit: () => void;
   togglePlay: () => void;
   setMultiplier: (n: number) => void;
+  setViewMode: (mode: SimViewMode) => void;
+  setFocusRoute: (routeId: string) => void;
   reset: () => void;
   /** Always-current elapsed simulated seconds; read inside animation frames. */
   simSecondsRef: React.RefObject<number>;
@@ -56,6 +83,8 @@ export function SimModeProvider({ children }: { children: React.ReactNode }) {
   const [playing, setPlaying] = useState(true);
   const [multiplier, setMultiplierState] = useState(DEFAULT_MULTIPLIER);
   const [displaySeconds, setDisplaySeconds] = useState(0);
+  const [viewMode, setViewModeState] = useState<SimViewMode>("network");
+  const [focusRouteId, setFocusRouteId] = useState<string | null>(null);
 
   const simSecondsRef = useRef(0);
   const playingRef = useRef(playing);
@@ -99,17 +128,32 @@ export function SimModeProvider({ children }: { children: React.ReactNode }) {
     return () => cancelAnimationFrame(raf);
   }, [active]);
 
+  // Esc peels off one layer: from a focused mode back to the network, and only
+  // from the network out of the simulation entirely. One enum means this is a
+  // single ordinary handler — no capture-phase interception between two
+  // providers racing to answer the same key.
+  const viewModeRef = useRef(viewMode);
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
+
   useEffect(() => {
     if (!active) {
       return;
     }
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (e.key !== "Escape") {
+        return;
+      }
+      if (viewModeRef.current === "network") {
         setActive(false);
+      } else {
+        setViewModeState("network");
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+    // The ref keeps the current mode in view without re-binding on every switch.
   }, [active]);
 
   const reset = useCallback(() => {
@@ -117,12 +161,33 @@ export function SimModeProvider({ children }: { children: React.ReactNode }) {
     setDisplaySeconds(0);
   }, []);
 
+  const setViewMode = useCallback((mode: SimViewMode) => setViewModeState(mode), []);
+  const setFocusRoute = useCallback((routeId: string) => setFocusRouteId(routeId), []);
+
+  // A follow-along run reads as one trip from the origin, so the clock restarts
+  // when the *subject* changes — but NOT when you merely step out to the network
+  // and back, which would throw away your place every time you glanced away.
+  const lastFollowedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (viewMode !== "follow" || !focusRouteId || lastFollowedRef.current === focusRouteId) {
+      return;
+    }
+    lastFollowedRef.current = focusRouteId;
+    simSecondsRef.current = 0;
+    setDisplaySeconds(0);
+  }, [viewMode, focusRouteId]);
+
   const enter = useCallback(() => {
     setActive(true);
     setPlaying(true);
+    setViewModeState("network");
+    lastFollowedRef.current = null;
   }, []);
 
-  const exit = useCallback(() => setActive(false), []);
+  const exit = useCallback(() => {
+    setActive(false);
+    setViewModeState("network");
+  }, []);
   const togglePlay = useCallback(() => setPlaying((p) => !p), []);
   const setMultiplier = useCallback((n: number) => setMultiplierState(n), []);
 
@@ -132,15 +197,35 @@ export function SimModeProvider({ children }: { children: React.ReactNode }) {
       playing,
       multiplier,
       displaySeconds,
+      viewMode,
+      focusRouteId,
+      followRouteId: viewMode === "follow" ? focusRouteId : null,
       enter,
       exit,
       togglePlay,
       setMultiplier,
+      setViewMode,
+      setFocusRoute,
       reset,
       simSecondsRef,
       subscribeFrame,
     }),
-    [active, playing, multiplier, displaySeconds, enter, exit, togglePlay, setMultiplier, reset, subscribeFrame]
+    [
+      active,
+      playing,
+      multiplier,
+      displaySeconds,
+      viewMode,
+      focusRouteId,
+      enter,
+      exit,
+      togglePlay,
+      setMultiplier,
+      setViewMode,
+      setFocusRoute,
+      reset,
+      subscribeFrame,
+    ]
   );
 
   return <SimModeContext.Provider value={value}>{children}</SimModeContext.Provider>;

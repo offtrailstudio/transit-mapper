@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Map, Pause, Play, RotateCcw, Settings, Table, X } from "lucide-react";
+import { Pause, Play, RotateCcw, Settings, X } from "lucide-react";
 import { formatSimClock, useSimMode } from "../../context/SimModeContext";
-import { useTimetableMode } from "../../context/TimetableModeContext";
 import { SimSettingsModal } from "./SimSettingsModal";
 import { SpeedMenu } from "./SpeedMenu";
+import { ViewModeMenu } from "./ViewModeMenu";
 
 /** Bottom overlay bar shown while the simulation is running (desktop + mobile). */
 export function SimControls() {
   const { active, playing, displaySeconds, togglePlay, reset, exit } = useSimMode();
-  const { active: showingTimetable, enter: showTimetable, exit: showMap } = useTimetableMode();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   if (!active) {
@@ -35,6 +34,8 @@ export function SimControls() {
 
         <SpeedMenu />
 
+        <ViewModeMenu />
+
         <button
           type="button"
           onClick={reset}
@@ -42,16 +43,6 @@ export function SimControls() {
           className="rounded-full bg-white/15 p-2 hover:bg-white/25"
         >
           <RotateCcw size={16} />
-        </button>
-
-        <button
-          type="button"
-          onClick={showingTimetable ? showMap : showTimetable}
-          aria-label={showingTimetable ? "Show map" : "Show timetable"}
-          title={showingTimetable ? "Show map" : "Show timetable"}
-          className="rounded-full bg-white/15 p-2 hover:bg-white/25"
-        >
-          {showingTimetable ? <Map size={16} /> : <Table size={16} />}
         </button>
 
         <button

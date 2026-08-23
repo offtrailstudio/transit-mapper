@@ -1,17 +1,33 @@
 "use client";
 
-import { Eye, EyeOff } from "lucide-react";
+import { Crosshair, Eye, EyeOff, Table } from "lucide-react";
 import { useMapData } from "../../context/MapDataContext";
+import { useSimMode } from "../../context/SimModeContext";
+import { useFocusRoute } from "../../hooks/useFocusRoute";
 import { routeStopIds } from "../../lib/lines";
 import { Route } from "../../lib/types";
 import { RouteEditor } from "./LineEditor";
 
 export function RouteListItem({ route }: { route: Route }) {
   const { state, dispatch, readOnly } = useMapData();
+  const { active: simActive, viewMode } = useSimMode();
+  const focusRoute = useFocusRoute();
   const isExpanded = route.id === state.activeRouteId;
 
+  // While a focused mode is running, mark which route it's showing. Read-only on
+  // purpose: clicking a row already expands its editor, so making it *also*
+  // change the subject would mean peeking at a route's stops yanks the camera
+  // onto a different vehicle. The corner picker stays the control.
+  const isWatched =
+    simActive && viewMode !== "network" && !route.hidden && route.id === focusRoute?.id;
+  const WatchIcon = viewMode === "timetable" ? Table : Crosshair;
+
   return (
-    <li className="rounded-md bg-neutral-200/60 dark:bg-neutral-900/40">
+    <li
+      className={`rounded-md bg-neutral-200/60 dark:bg-neutral-900/40 ${
+        isWatched ? "ring-1 ring-neutral-900/25 dark:ring-white/30" : ""
+      }`}
+    >
       <div className="flex items-center">
         <button
           type="button"
@@ -35,7 +51,18 @@ export function RouteListItem({ route }: { route: Route }) {
         >
           <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: route.routeColor }} />
           <span className="min-w-0 truncate">{route.name}</span>
-          <span className="ml-auto text-xs text-neutral-500">{routeStopIds(route).length}</span>
+          {isWatched && (
+            <span
+              className="ml-auto flex shrink-0 items-center text-neutral-500"
+              title="Showing in the simulation"
+            >
+              <WatchIcon size={13} />
+              <span className="sr-only">Showing in the simulation</span>
+            </span>
+          )}
+          <span className={`text-xs text-neutral-500 ${isWatched ? "" : "ml-auto"}`}>
+            {routeStopIds(route).length}
+          </span>
           <span className="text-xs text-neutral-500">{isExpanded ? "▾" : "▸"}</span>
         </button>
       </div>

@@ -1,6 +1,6 @@
 {
   "name": "@offtrailstudio/transit-mapper",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Embeddable GTFS-aligned schematic transit map editor (React + Mapbox).",
   "license": "MIT",
   "author": "Off-Trail Studio LLC",

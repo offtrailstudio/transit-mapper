@@ -1,3 +1,4 @@
+import { FollowTimeline, sampleFollow } from "./followAlong";
 import { RouteSchedule, vehiclePositions } from "./simulation";
 
 const METERS_PER_DEGREE_LAT = 111_320;
@@ -44,10 +45,36 @@ export function buildVehicleFeatures(
       const [lng, lat] = offsetPoint(v.lng, v.lat, v.bearing, v.offsetPx, zoom);
       features.push({
         type: "Feature",
-        properties: { color: schedule.color, dwelling: v.dwelling },
+        properties: { color: schedule.color, dwelling: v.dwelling, follow: false },
         geometry: { type: "Point", coordinates: [lng, lat] },
       });
     }
   }
   return { type: "FeatureCollection", features };
+}
+
+/**
+ * The GeoJSON for a follow-along run: the single vehicle being followed, flagged
+ * `follow` so the layer can draw it larger than a background vehicle. Shares the
+ * same source as `buildVehicleFeatures`, so following swaps the whole fleet for
+ * this one vehicle rather than painting a second layer over it.
+ */
+export function buildFollowVehicleFeatures(
+  schedule: RouteSchedule,
+  timeline: FollowTimeline,
+  simSeconds: number,
+  zoom: number
+): GeoJSON.FeatureCollection<GeoJSON.Point> {
+  const { vehicle } = sampleFollow(schedule, timeline, simSeconds);
+  const [lng, lat] = offsetPoint(vehicle.lng, vehicle.lat, vehicle.bearing, vehicle.offsetPx, zoom);
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: { color: schedule.color, dwelling: vehicle.dwelling, follow: true },
+        geometry: { type: "Point", coordinates: [lng, lat] },
+      },
+    ],
+  };
 }

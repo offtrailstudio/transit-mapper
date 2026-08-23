@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef } from "react";
 import { useMap } from "react-map-gl/mapbox";
 import { useMapData } from "../../context/MapDataContext";
 import { useSimMode } from "../../context/SimModeContext";
+import { useFollowRun } from "../../hooks/useFollowRun";
 import { buildRouteSchedules } from "../../lib/simulation";
-import { buildVehicleFeatures } from "../../lib/vehicleFeatures";
+import { buildFollowVehicleFeatures, buildVehicleFeatures } from "../../lib/vehicleFeatures";
 
 const SOURCE_ID = "transit-vehicles";
 const LAYER_ID = "transit-vehicles-circle";
@@ -37,6 +38,15 @@ export function VehiclesLayer() {
     schedulesRef.current = schedules;
   }, [schedules]);
 
+  // Following swaps the whole fleet for the one vehicle being ridden, so the
+  // followed line reads clearly instead of being lost among its own headway.
+  // Routed through a ref for the same reason as the schedules above.
+  const followRun = useFollowRun();
+  const followRunRef = useRef(followRun);
+  useEffect(() => {
+    followRunRef.current = followRun;
+  }, [followRun]);
+
   useEffect(() => {
     if (!mapRef) {
       return;
@@ -53,10 +63,22 @@ export function VehiclesLayer() {
           type: "circle",
           source: SOURCE_ID,
           paint: {
-            // Small when zoomed right out, growing with zoom.
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 2, 11, 7, 16, 13],
+            // Small when zoomed right out, growing with zoom. The zoom curve has
+            // to stay the top-level expression (Mapbox forbids nesting one), so
+            // the followed vehicle's larger size rides in the stop values.
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              3,
+              ["case", ["get", "follow"], 4, 2],
+              11,
+              ["case", ["get", "follow"], 11, 7],
+              16,
+              ["case", ["get", "follow"], 18, 13],
+            ],
             "circle-color": ["get", "color"],
-            "circle-stroke-width": 1.5,
+            "circle-stroke-width": ["case", ["get", "follow"], 3, 1.5],
             "circle-stroke-color": "#ffffff",
             "circle-opacity": ["case", ["get", "dwelling"], 0.75, 1],
           },
@@ -75,7 +97,12 @@ export function VehiclesLayer() {
       const source = map.getSource(SOURCE_ID) as
         | { setData: (data: GeoJSON.FeatureCollection<GeoJSON.Point>) => void }
         | undefined;
-      source?.setData(buildVehicleFeatures(schedulesRef.current, simSeconds, map.getZoom()));
+      const follow = followRunRef.current;
+      source?.setData(
+        follow
+          ? buildFollowVehicleFeatures(follow.schedule, follow.timeline, simSeconds, map.getZoom())
+          : buildVehicleFeatures(schedulesRef.current, simSeconds, map.getZoom())
+      );
     });
 
     return () => {
