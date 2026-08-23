@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import { useMapData } from "../../context/MapDataContext";
 import { useSimMode } from "../../context/SimModeContext";
-import { useTimetableMode } from "../../context/TimetableModeContext";
+import { useFocusRoute } from "../../hooks/useFocusRoute";
 import { buildRouteTimetable, secondsToClock, stopIndexAt, tripDepartures } from "../../lib/timetable";
+import { RoutePicker } from "./RoutePicker";
 
 const MAX_TRIP_COLUMNS = 10;
 
@@ -37,18 +38,18 @@ function parseClock(value: string): number | null {
  * simulation runs on, so a printed timetable can't disagree with the vehicles.
  */
 export function TimetableView() {
-  const { active } = useTimetableMode();
   // Re-renders a few times a second while the sim plays, moving the live markers.
-  const { displaySeconds } = useSimMode();
+  const { displaySeconds, viewMode } = useSimMode();
   const { state } = useMapData();
   const routes = state.data.routes;
+  const active = viewMode === "timetable";
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   // Anchor the window near the current sim time (rounded to the half hour) so the
   // live highlight is visible as soon as the timetable opens; still adjustable.
   const [firstDeparture, setFirstDeparture] = useState(() => Math.max(0, Math.floor(displaySeconds / 1800) * 1800));
 
-  const selected = routes.find((r) => r.id === selectedId) ?? routes[0] ?? null;
+  // Shared with Follow, so switching between the two keeps the same route.
+  const selected = useFocusRoute();
   const timetable = useMemo(
     () => (selected ? buildRouteTimetable(state.data, selected) : null),
     [state.data, selected]
@@ -78,8 +79,9 @@ export function TimetableView() {
 
   return (
     <div className="absolute inset-0 z-20 flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
-      <div className="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
+      <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
         <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">Timetable</h2>
+        <RoutePicker />
       </div>
 
       {routes.length === 0 ? (
@@ -88,29 +90,11 @@ export function TimetableView() {
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex flex-wrap gap-2 border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
-            {routes.map((route) => {
-              const isSelected = route.id === selected?.id;
-              return (
-                <button
-                  key={route.id}
-                  type="button"
-                  onClick={() => setSelectedId(route.id)}
-                  aria-pressed={isSelected}
-                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
-                    isSelected
-                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                      : "border-neutral-200 text-neutral-700 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500"
-                  }`}
-                >
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: route.routeColor }} />
-                  {route.name || "Untitled route"}
-                </button>
-              );
-            })}
-          </div>
-
-          {!timetable ? (
+          {selected?.hidden ? (
+            <div className="flex flex-1 items-center justify-center p-6 text-sm text-neutral-500">
+              {selected.name || "This route"} is hidden — show it to see its timetable.
+            </div>
+          ) : !timetable ? (
             <div className="flex flex-1 items-center justify-center p-6 text-sm text-neutral-500">
               This route needs at least two stops to build a timetable.
             </div>

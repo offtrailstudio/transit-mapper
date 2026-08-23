@@ -16,6 +16,95 @@ sim speed + picker label. GTFS `route_type` is an integer space; the mapping
 (basic 0–12 + extended HVT 100–1799) lives in `src/gtfs/routeType.ts`. `hsr`
 has no GTFS code except extended `101`, so basic-rail HSR is a per-feed override.
 
+## Simulation: three modes on one clock
+
+`SimModeContext` owns a single rAF loop and one `simSecondsRef` — everything
+animated subscribes to it (`subscribeFrame`) and drives the map *imperatively*.
+Never animate through React state; `VehiclesLayer` and `FollowCamera` both read
+their inputs through refs so a data change can't tear down a live subscription.
+
+`viewMode` (`network | follow | timetable`) is **one enum**, not a mode flag per
+feature. That's deliberate:
+
+- Every mode runs on the same clock — pause, speed and reset apply to all three.
+- The way *out* is the way in: `ViewModeMenu` is one icon button (`SpeedMenu`'s
+  shape) wearing the *current* mode's icon, so the control you press to leave
+  Follow is the one already telling you you're in it.
+- Esc peels off one layer (focused mode → network → out of the sim) as a single
+  ordinary handler. The previous split `TimetableModeContext` needed a
+  capture-phase `stopImmediatePropagation` to stop two providers answering Esc at
+  once; that whole hack is gone.
+
+**`focusRouteId` is shared by Follow and Timetable** — the route you're reading a
+schedule for is the route you then watch run, so switching modes keeps your
+subject. Resolve it through **`useFocusRoute()`**, never the raw id: it falls back
+to the sidebar's `activeRouteId` and then the first route, so a focused mode opens
+on the route you were already working on and a deleted route degrades to a
+sensible one. `ViewModeMenu` commits that resolved id on entering a focused mode,
+which is what lets the clock rule below tell a new subject from a re-entry.
+
+**Mode and route stay two separate controls.** Folding routes into the view menu
+as a submenu was considered and rejected: changing route would mean reopening a
+menu and walking into a nested level, touch targets get bad on mobile, and it
+re-fuses the two jobs whose entanglement made leaving Follow hard to find.
+
+**`route.hidden` excludes a route from the focused modes**, matching the field's
+own definition ("hidden from the live map *and simulation*"). `useFollowRun`
+returns null for one and `TimetableView` says so, rather than following an
+invisible line — a real regression once, when unifying the pickers dropped the
+filter the old follow menu had. The picker still *lists* hidden routes, disabled
+with an eye-off icon: dropping them reads as deletion.
+
+**The sidebar marks the focused route but does not set it.** `RouteListItem` shows
+a ring + mode icon while a focused mode runs. It stays read-only deliberately —
+the sidebar is behind a map-covering sheet on mobile (so it can never be the only
+selector), `activeRouteId` means "expanded for editing" rather than "being
+watched", and a row click already expands the editor, so overloading it would mean
+peeking at a route's stops yanks the camera onto a different vehicle.
+
+Rendering per mode:
+
+- **network** — `buildRouteSchedules` → `vehiclePositions`: every route, vehicles
+  spaced by headway, dwelling only at *intermediate* stops.
+- **follow** — `src/lib/followAlong.ts`: **one** vehicle on **one** route, holding
+  at **every** stop (origin and terminus included), then looping. The origin hold
+  gives the run a readable first beat. **The clock restarts only when the followed
+  route changes** — stepping out to the network and back must not throw away your
+  place.
+
+  **The dwell is the one duration measured in _real_ seconds**
+  (`FOLLOW_DWELL_REAL_SECONDS`, converted by `followDwellSeconds(multiplier)`).
+  The hold exists to be *read*, and readability is wall-clock, so a value fixed in
+  simulated seconds can't survive the speed control: 20 sim-seconds played as a
+  comfortable 4s at 5× but a measured **332ms** at the 60× default — no pause at
+  all. Scaling it holds the same beat at every step (measured within 8ms across
+  60× and 10×).
+  Two consequences, both accepted: the sim clock gallops while following (two
+  simulated minutes per stop at 60×), and changing speed rebuilds the timeline so
+  the vehicle steps once. Follow's timeline is synthetic anyway — no real schedule
+  holds at its own terminus — and the timetable runs off `buildRouteSchedule`, not
+  this, so printed times stay honest.
+- **timetable** — `TimetableView` covers the map (`absolute inset-0`), driven by
+  the same `buildRouteSchedule` engine so a printed timetable can't disagree with
+  the vehicles.
+
+`buildFollowTimeline(schedule)` → arrival/departure seconds per stop;
+`sampleFollow(schedule, timeline, simSeconds)` → position plus the stop being held
+at *or approached*. Both are pure and read `RouteSchedule.stopIds` /`stopMeters`
+/`speedMps`, so the run can only ever name stops the drawn geometry reached.
+`useFollowRun()` resolves route + schedule + timeline + stop names once, and the
+camera (`FollowCamera`), the vehicle layer and the readout (`FollowBanner`) all
+share it — three separate builds would drift apart on a data change.
+
+`RoutePicker` is one component with a `tone` prop, mounted **top-right in both
+focused modes** — the timetable's own header (`panel`) and a map overlay while
+following (`overlay`, via `FollowRoutePicker`) — so "which route am I looking at"
+never moves between modes. `overlay` carries its own dark pill: it stands alone on
+the basemap, where the sim bar's translucent fill would leave white text on a pale
+map. Both mounts drop their menu downward and right-aligned. The follow banner
+deliberately does **not** name the route (the picker beside it already does);
+it shows the colour dot, `Stop n of N`, and the held/approached stop.
+
 ## Adding routes: the `RouteSource` seam (the "Add a route" picker)
 
 The picker (`src/components/sidebar/AddRouteModal.tsx`) is **search-first** and

@@ -8,6 +8,7 @@ import { useMapData } from "../../context/MapDataContext";
 import { usePinMode } from "../../context/PinModeContext";
 import { useSimMode } from "../../context/SimModeContext";
 import { useColorScheme } from "../../hooks/useColorScheme";
+import { FollowCamera } from "./FollowCamera";
 import { RoutesLayer } from "./LinesLayer";
 import { StationPopup } from "./StationPopup";
 import { StationsLayer } from "./StationsLayer";
@@ -72,7 +73,12 @@ export function MapEditor() {
     >
       <RoutesLayer />
       <StationsLayer onSelectStation={setSelectedStationId} />
-      {simActive && <VehiclesLayer />}
+      {simActive && (
+        <>
+          <VehiclesLayer />
+          <FollowCamera />
+        </>
+      )}
       {selectedStationId && (
         <StationPopup
           stopId={selectedStationId}

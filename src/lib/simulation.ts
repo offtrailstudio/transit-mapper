@@ -20,6 +20,15 @@ export type RouteSchedule = {
   /** Cumulative metres at each vertex (length = coords.length). */
   cumMeters: number[];
   totalMeters: number;
+  /**
+   * The stops the geometry actually reached, in travel order. Shorter than the
+   * route's pattern when building stopped early at a missing stop.
+   */
+  stopIds: string[];
+  /** Cumulative metres at each stop (length = stopIds.length). */
+  stopMeters: number[];
+  /** Cruising speed in metres per second — the gap between two stops divided by it is the hop time. */
+  speedMps: number;
   /** Seconds for one end-to-end trip, including dwell at intermediate stops. */
   tripSeconds: number;
   headwaySeconds: number;
@@ -91,7 +100,8 @@ function sampleKnots(knots: Knots, seconds: number): { distance: number; dwellin
   return { distance: d[last], dwelling: false };
 }
 
-function pointAtDistance(
+/** Where on the drawn track a vehicle sits `meters` along it, clamped to the path. */
+export function pointAtDistance(
   schedule: RouteSchedule,
   meters: number
 ): { lng: number; lat: number; bearing: number; offsetPx: number } {
@@ -132,6 +142,7 @@ export function buildRouteSchedule(
   const coords: [number, number][] = [];
   const segOffsetPx: number[] = [];
   const stopVertexIndices: number[] = [];
+  const servedStopIds: string[] = [];
 
   const stopIds = primaryStopIds(route);
   for (let i = 0; i < stopIds.length - 1; i++) {
@@ -143,12 +154,14 @@ export function buildRouteSchedule(
     if (coords.length === 0) {
       coords.push(path[0]);
       stopVertexIndices.push(0);
+      servedStopIds.push(stopIds[i]);
     }
     for (let p = 1; p < path.length; p++) {
       coords.push(path[p]);
       segOffsetPx.push(offsets[i] ?? 0);
     }
     stopVertexIndices.push(coords.length - 1);
+    servedStopIds.push(stopIds[i + 1]);
   }
 
   if (coords.length < 2) return null;
@@ -179,10 +192,26 @@ export function buildRouteSchedule(
     segOffsetPx,
     cumMeters,
     totalMeters,
+    stopIds: servedStopIds,
+    stopMeters: stopDists,
+    speedMps,
     tripSeconds,
     headwaySeconds,
     knots,
   };
+}
+
+/**
+ * The schedule for a single route of `data`, built against the whole network so
+ * its painted offsets match the drawn track. Null when the route is gone or has
+ * too few resolvable stops to travel between.
+ */
+export function buildRouteScheduleFor(data: TransitMapData, routeId: string): RouteSchedule | null {
+  const route = data.routes.find((r) => r.id === routeId);
+  if (!route) return null;
+  const stopsById = new Map(data.stops.map((p) => [p.id, p]));
+  const offsets = routeEdgeOffsets(data).get(route.id) ?? [];
+  return buildRouteSchedule(route, stopsById, speedForRoute(data, route), offsets);
 }
 
 export function buildRouteSchedules(data: TransitMapData): RouteSchedule[] {
