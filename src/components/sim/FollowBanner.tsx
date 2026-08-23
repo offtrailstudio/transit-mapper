@@ -15,7 +15,7 @@ type Marker = { stopIndex: number; dwelling: boolean };
  * phase actually changes — a few times a minute, not sixty times a second.
  */
 export function FollowBanner() {
-  const { active, viewMode, subscribeFrame, simSecondsRef } = useSimMode();
+  const { viewMode, subscribeFrame, simSecondsRef } = useSimMode();
   const focusRoute = useFocusRoute();
   const run = useFollowRun();
   const [marker, setMarker] = useState<Marker | null>(null);
@@ -40,7 +40,7 @@ export function FollowBanner() {
     return subscribeFrame(update);
   }, [run, subscribeFrame, simSecondsRef]);
 
-  if (!active || viewMode !== "follow") {
+  if (viewMode !== "follow") {
     return null;
   }
 

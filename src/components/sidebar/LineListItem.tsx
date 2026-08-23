@@ -10,7 +10,7 @@ import { RouteEditor } from "./LineEditor";
 
 export function RouteListItem({ route }: { route: Route }) {
   const { state, dispatch, readOnly } = useMapData();
-  const { active: simActive, viewMode } = useSimMode();
+  const { viewMode } = useSimMode();
   const focusRoute = useFocusRoute();
   const isExpanded = route.id === state.activeRouteId;
 
@@ -18,8 +18,7 @@ export function RouteListItem({ route }: { route: Route }) {
   // purpose: clicking a row already expands its editor, so making it *also*
   // change the subject would mean peeking at a route's stops yanks the camera
   // onto a different vehicle. The corner picker stays the control.
-  const isWatched =
-    simActive && viewMode !== "network" && !route.hidden && route.id === focusRoute?.id;
+  const isWatched = viewMode !== "network" && !route.hidden && route.id === focusRoute?.id;
   const WatchIcon = viewMode === "timetable" ? Table : Crosshair;
 
   return (

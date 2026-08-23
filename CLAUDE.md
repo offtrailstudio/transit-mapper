@@ -18,22 +18,51 @@ has no GTFS code except extended `101`, so basic-rail HSR is a per-feed override
 
 ## Simulation: three modes on one clock
 
-`SimModeContext` owns a single rAF loop and one `simSecondsRef` — everything
-animated subscribes to it (`subscribeFrame`) and drives the map *imperatively*.
-Never animate through React state; `VehiclesLayer` and `FollowCamera` both read
-their inputs through refs so a data change can't tear down a live subscription.
+**The simulation is always mounted — it has no off state, only a pause.** The
+editor opens with the clock at 00:00, paused, on the network view, and
+`SimControls` (the playback bar) is on screen from the first paint. There is no
+"Simulate" button and no exit: pressing **play** is what hands the map over.
+`editingLocked` (on `useSimMode()`) is that handover — `playing || viewMode !==
+"network"` — and it's what gates map editing (`MapEditor`'s pin click,
+`StationsLayer`'s draggable markers). Paused on the network view *is* the editor's
+resting state.
+
+Two consequences worth remembering:
+
+- **The rAF loop only runs while playing**, so anything that moves the clock or
+  the data while paused has to repaint the vehicles itself: `publishFrame()` fans
+  the current time out to every subscriber (used by `reset`, by the follow-route
+  clock restart, and by `VehiclesLayer` when the schedules change). A paused
+  editor must not burn a frame callback sixty times a second.
+- `VehiclesLayer`/`FollowCamera` are mounted unconditionally, and `VehiclesLayer`
+  paints once as soon as its layer is added — otherwise a paused sim shows an
+  empty map until you press play.
+
+`SimModeContext` owns that rAF loop and one `simSecondsRef` — everything animated
+subscribes to it (`subscribeFrame`) and drives the map *imperatively*. Never
+animate through React state; `VehiclesLayer` and `FollowCamera` both read their
+inputs through refs so a data change can't tear down a live subscription.
 
 `viewMode` (`network | follow | timetable`) is **one enum**, not a mode flag per
 feature. That's deliberate:
 
 - Every mode runs on the same clock — pause, speed and reset apply to all three.
-- The way *out* is the way in: `ViewModeMenu` is one icon button (`SpeedMenu`'s
-  shape) wearing the *current* mode's icon, so the control you press to leave
-  Follow is the one already telling you you're in it.
-- Esc peels off one layer (focused mode → network → out of the sim) as a single
-  ordinary handler. The previous split `TimetableModeContext` needed a
-  capture-phase `stopImmediatePropagation` to stop two providers answering Esc at
-  once; that whole hack is gone.
+- **The mode menu sits in the map's top-left** (`ViewModeMenu`, mounted by
+  `AppShell`), not in the playback bar: the bar is only the clock's transport
+  (play/pause, speed, reset, settings), and the mode belongs with the map it
+  changes — opposite `FollowRoutePicker` in the top-right, so "what am I looking
+  at" and "which route" are matching pills at either end of the same edge. It
+  wears the *current* mode's name and icon, which is what keeps the way out
+  visible: the control you press to leave Follow is the one telling you you're in
+  it. Because it floats over the timetable too (z-40 over that view's z-20), the
+  timetable has **no heading of its own** — the pill already says "Timetable" and
+  is how you leave; its header keeps a fixed `h-16` so the route picker still
+  lines up with the pill.
+- Esc peels off one layer (focused mode → network) as a single ordinary handler;
+  on the network view it does nothing, since there's nothing left to leave. The
+  previous split `TimetableModeContext` needed a capture-phase
+  `stopImmediatePropagation` to stop two providers answering Esc at once; that
+  whole hack is gone.
 
 **`focusRouteId` is shared by Follow and Timetable** — the route you're reading a
 schedule for is the route you then watch run, so switching modes keeps your

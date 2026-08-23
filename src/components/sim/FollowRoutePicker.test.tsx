@@ -20,11 +20,8 @@ const DATA: TransitMapData = {
 };
 
 function Harness() {
-  const { enter, setViewMode } = useSimMode();
-  const go = (mode: SimViewMode) => () => {
-    enter();
-    setViewMode(mode);
-  };
+  const { setViewMode } = useSimMode();
+  const go = (mode: SimViewMode) => () => setViewMode(mode);
   return (
     <div>
       <button onClick={go("follow")}>follow</button>

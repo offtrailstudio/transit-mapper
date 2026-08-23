@@ -79,8 +79,10 @@ export function TimetableView() {
 
   return (
     <div className="absolute inset-0 z-20 flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
-      <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">Timetable</h2>
+      {/* No title of its own: the view menu floats over this corner (see
+          AppShell) already saying "Timetable", and it's how you leave. The
+          header keeps its height so the route picker lines up with that pill. */}
+      <div className="flex h-16 items-center justify-end gap-4 border-b border-neutral-200 px-5 dark:border-neutral-800">
         <RoutePicker />
       </div>
 

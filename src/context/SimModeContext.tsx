@@ -33,7 +33,6 @@ type FrameSubscriber = (simSeconds: number) => void;
 export type SimViewMode = "network" | "follow" | "timetable";
 
 type SimModeContextValue = {
-  active: boolean;
   playing: boolean;
   multiplier: number;
   /** Elapsed simulated seconds, updated a few times a second for the clock (not every frame). */
@@ -48,8 +47,12 @@ type SimModeContextValue = {
   focusRouteId: string | null;
   /** Convenience for the follow machinery: the focused route, but only while following. */
   followRouteId: string | null;
-  enter: () => void;
-  exit: () => void;
+  /**
+   * True while the simulation owns the map, so map editing steps aside: the clock
+   * is running, or a focused mode has taken the camera/screen. Paused on the
+   * network view is the editing state — that's the editor's resting position.
+   */
+  editingLocked: boolean;
   togglePlay: () => void;
   setMultiplier: (n: number) => void;
   setViewMode: (mode: SimViewMode) => void;
@@ -59,6 +62,12 @@ type SimModeContextValue = {
   simSecondsRef: React.RefObject<number>;
   /** Register a per-frame callback (the vehicle layer uses this); returns an unsubscribe. */
   subscribeFrame: (cb: FrameSubscriber) => () => void;
+  /**
+   * Push the current clock to every subscriber out of band. The rAF loop only
+   * runs while playing, so anything that moves the vehicles *while paused* — a
+   * reset, a change of followed route — has to repaint them itself.
+   */
+  publishFrame: () => void;
 };
 
 const SimModeContext = createContext<SimModeContextValue | null>(null);
@@ -72,28 +81,28 @@ export function formatSimClock(displaySeconds: number): string {
 }
 
 /**
- * Transient playback state for the simulation overlay — deliberately outside the
- * undo/redo history (like pin mode) since it's UI, not map data. A single rAF
- * loop lives here so simulated time has one source of truth: it advances
+ * Playback state for the simulation, which is always mounted: the editor opens
+ * with the sim paused on the network view, and pressing play is what hands the
+ * map over to it. (Transient, and deliberately outside the undo/redo history
+ * like pin mode — it's UI, not map data.)
+ *
+ * The rAF loop lives here so simulated time has one source of truth: it advances
  * `simSecondsRef`, fans out to frame subscribers, and only throttles updates to
  * `displaySeconds` so the clock re-renders without churning React every frame.
+ * It runs only while playing — a paused editor must not burn a frame callback
+ * sixty times a second — so out-of-band moves go through `publishFrame`.
  */
 export function SimModeProvider({ children }: { children: React.ReactNode }) {
-  const [active, setActive] = useState(false);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
   const [multiplier, setMultiplierState] = useState(DEFAULT_MULTIPLIER);
   const [displaySeconds, setDisplaySeconds] = useState(0);
   const [viewMode, setViewModeState] = useState<SimViewMode>("network");
   const [focusRouteId, setFocusRouteId] = useState<string | null>(null);
 
   const simSecondsRef = useRef(0);
-  const playingRef = useRef(playing);
   const multiplierRef = useRef(multiplier);
   const subscribersRef = useRef(new Set<FrameSubscriber>());
 
-  useEffect(() => {
-    playingRef.current = playing;
-  }, [playing]);
   useEffect(() => {
     multiplierRef.current = multiplier;
   }, [multiplier]);
@@ -105,15 +114,19 @@ export function SimModeProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const publishFrame = useCallback(() => {
+    subscribersRef.current.forEach((cb) => cb(simSecondsRef.current));
+  }, []);
+
   useEffect(() => {
-    if (!active) {
+    if (!playing) {
       return;
     }
     let raf = 0;
     let last: number | null = null;
     let lastClock = 0;
     const tick = (ts: number) => {
-      if (last !== null && playingRef.current) {
+      if (last !== null) {
         simSecondsRef.current += ((ts - last) / 1000) * multiplierRef.current;
       }
       last = ts;
@@ -126,40 +139,33 @@ export function SimModeProvider({ children }: { children: React.ReactNode }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [active]);
+  }, [playing]);
 
-  // Esc peels off one layer: from a focused mode back to the network, and only
-  // from the network out of the simulation entirely. One enum means this is a
-  // single ordinary handler — no capture-phase interception between two
-  // providers racing to answer the same key.
+  // Esc peels off one layer: a focused mode hands the map back to the network
+  // view. There's no layer below that to leave — the simulation is always
+  // mounted — so Esc on the network is a no-op rather than a hidden exit.
   const viewModeRef = useRef(viewMode);
   useEffect(() => {
     viewModeRef.current = viewMode;
   }, [viewMode]);
 
   useEffect(() => {
-    if (!active) {
-      return;
-    }
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key !== "Escape") {
+      if (e.key !== "Escape" || viewModeRef.current === "network") {
         return;
       }
-      if (viewModeRef.current === "network") {
-        setActive(false);
-      } else {
-        setViewModeState("network");
-      }
+      setViewModeState("network");
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
     // The ref keeps the current mode in view without re-binding on every switch.
-  }, [active]);
+  }, []);
 
   const reset = useCallback(() => {
     simSecondsRef.current = 0;
     setDisplaySeconds(0);
-  }, []);
+    publishFrame();
+  }, [publishFrame]);
 
   const setViewMode = useCallback((mode: SimViewMode) => setViewModeState(mode), []);
   const setFocusRoute = useCallback((routeId: string) => setFocusRouteId(routeId), []);
@@ -175,33 +181,23 @@ export function SimModeProvider({ children }: { children: React.ReactNode }) {
     lastFollowedRef.current = focusRouteId;
     simSecondsRef.current = 0;
     setDisplaySeconds(0);
-  }, [viewMode, focusRouteId]);
+    publishFrame();
+  }, [viewMode, focusRouteId, publishFrame]);
 
-  const enter = useCallback(() => {
-    setActive(true);
-    setPlaying(true);
-    setViewModeState("network");
-    lastFollowedRef.current = null;
-  }, []);
-
-  const exit = useCallback(() => {
-    setActive(false);
-    setViewModeState("network");
-  }, []);
   const togglePlay = useCallback(() => setPlaying((p) => !p), []);
   const setMultiplier = useCallback((n: number) => setMultiplierState(n), []);
 
+  const editingLocked = playing || viewMode !== "network";
+
   const value = useMemo(
     () => ({
-      active,
       playing,
       multiplier,
       displaySeconds,
       viewMode,
       focusRouteId,
       followRouteId: viewMode === "follow" ? focusRouteId : null,
-      enter,
-      exit,
+      editingLocked,
       togglePlay,
       setMultiplier,
       setViewMode,
@@ -209,22 +205,22 @@ export function SimModeProvider({ children }: { children: React.ReactNode }) {
       reset,
       simSecondsRef,
       subscribeFrame,
+      publishFrame,
     }),
     [
-      active,
       playing,
       multiplier,
       displaySeconds,
       viewMode,
       focusRouteId,
-      enter,
-      exit,
+      editingLocked,
       togglePlay,
       setMultiplier,
       setViewMode,
       setFocusRoute,
       reset,
       subscribeFrame,
+      publishFrame,
     ]
   );
 

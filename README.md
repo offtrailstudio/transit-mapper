@@ -75,7 +75,7 @@ buttons:
 
 ```tsx
 import {
-  RailShell, RailDivider, UndoButton, RedoButton, SimulateButton, ExportButton,
+  RailShell, RailDivider, UndoButton, RedoButton, ExportButton,
 } from "@offtrailstudio/transit-mapper";
 
 function Rail() {
@@ -84,12 +84,17 @@ function Rail() {
       <UndoButton />
       <RedoButton />
       <RailDivider />
-      <SimulateButton />
       <ExportButton />
     </RailShell>
   );
 }
 ```
+
+The rail has no simulation button: the simulation is always mounted, paused on
+the network view, and owns its own chrome over the map — a view menu (network /
+follow / timetable) in the top-left and the playback bar along the bottom.
+Pressing play is what takes the map over; paused on the network view, it's a
+plain editor.
 
 ### Adding real routes
 

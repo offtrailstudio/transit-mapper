@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { nextRouteColor } from "./colors";
+import { ROUTE_TYPE_DEFAULTS } from "./lineKinds";
 import { routeStopIds, primaryStopIds } from "./lines";
 import { ResolvedRoute } from "./presets";
 import { EditorState, initialEditorState, mapReducer } from "./reducer";
@@ -328,6 +329,7 @@ describe("ADD_CATALOG_ROUTE", () => {
   it("SET_ROUTE_TYPE_SPEED edits the project-wide speed table", () => {
     const state = mapReducer(initialEditorState, { type: "SET_ROUTE_TYPE_SPEED", routeType: "hsr", speedKmh: 250 });
     expect(state.data.routeTypes?.hsr.speedKmh).toBe(250);
-    expect(state.data.routeTypes?.subway.speedKmh).toBe(35); // untouched
+    // Untouched: still the seed, whatever that seed currently is.
+    expect(state.data.routeTypes?.subway.speedKmh).toBe(ROUTE_TYPE_DEFAULTS.subway.speedKmh);
   });
 });

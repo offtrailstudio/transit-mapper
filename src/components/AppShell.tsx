@@ -8,6 +8,7 @@ import { MobileTopBar } from "./MobileTopBar";
 import { FollowBanner } from "./sim/FollowBanner";
 import { FollowRoutePicker } from "./sim/FollowRoutePicker";
 import { SimControls } from "./sim/SimControls";
+import { ViewModeMenu } from "./sim/ViewModeMenu";
 import { TimetableView } from "./timetable/TimetableView";
 import { Sidebar } from "./sidebar/Sidebar";
 
@@ -46,10 +47,18 @@ export function AppShell({
 
         <main className="relative min-h-0 flex-1 overflow-hidden rounded-xl md:overflow-visible md:rounded-none lg:overflow-hidden lg:rounded-xl">
           {children}
+          <TimetableView />
+          {/* Simulation chrome, above the timetable (z-40 over its z-20): the
+              view menu top-left, the route being watched top-right, the clock's
+              transport along the bottom. */}
+          <div className="pointer-events-none absolute left-4 top-4 z-40 flex">
+            <div className="pointer-events-auto">
+              <ViewModeMenu />
+            </div>
+          </div>
           <FollowBanner />
           <FollowRoutePicker />
           <SimControls />
-          <TimetableView />
         </main>
 
         {rail}

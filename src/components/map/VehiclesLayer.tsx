@@ -17,11 +17,15 @@ const EMPTY: GeoJSON.FeatureCollection<GeoJSON.Point> = { type: "FeatureCollecti
  * never React markers, which would re-render hundreds of nodes per frame. A
  * single frame subscriber (from SimModeContext) recomputes positions and calls
  * `setData`, so the animation never touches React state.
+ *
+ * The layer is mounted for the whole session, not just while playing: the editor
+ * opens on a paused simulation, so the vehicles have to be drawn (and kept true
+ * to the map data as it's edited) with no frames arriving at all.
  */
 export function VehiclesLayer() {
   const { current: mapRef } = useMap();
   const { state } = useMapData();
-  const { subscribeFrame } = useSimMode();
+  const { subscribeFrame, publishFrame, simSecondsRef } = useSimMode();
 
   // The frame subscriber below is registered once and reads schedules through
   // this ref. Rebuilding the schedules on every settings change (e.g. line
@@ -52,6 +56,18 @@ export function VehiclesLayer() {
       return;
     }
     const map = mapRef.getMap();
+
+    function draw(simSeconds: number) {
+      const source = map.getSource(SOURCE_ID) as
+        | { setData: (data: GeoJSON.FeatureCollection<GeoJSON.Point>) => void }
+        | undefined;
+      const follow = followRunRef.current;
+      source?.setData(
+        follow
+          ? buildFollowVehicleFeatures(follow.schedule, follow.timeline, simSeconds, map.getZoom())
+          : buildVehicleFeatures(schedulesRef.current, simSeconds, map.getZoom())
+      );
+    }
 
     function addLayer() {
       if (!map.getSource(SOURCE_ID)) {
@@ -84,26 +100,17 @@ export function VehiclesLayer() {
           },
         });
       }
+      draw(simSecondsRef.current);
     }
 
-    // The style may still be loading when sim mode opens.
+    // The style may still be loading when the editor mounts.
     if (map.isStyleLoaded()) {
       addLayer();
     } else {
       map.once("styledata", addLayer);
     }
 
-    const unsubscribe = subscribeFrame((simSeconds) => {
-      const source = map.getSource(SOURCE_ID) as
-        | { setData: (data: GeoJSON.FeatureCollection<GeoJSON.Point>) => void }
-        | undefined;
-      const follow = followRunRef.current;
-      source?.setData(
-        follow
-          ? buildFollowVehicleFeatures(follow.schedule, follow.timeline, simSeconds, map.getZoom())
-          : buildVehicleFeatures(schedulesRef.current, simSeconds, map.getZoom())
-      );
-    });
+    const unsubscribe = subscribeFrame(draw);
 
     return () => {
       unsubscribe();
@@ -116,7 +123,14 @@ export function VehiclesLayer() {
       }
     };
     // Set up once per map: schedule changes flow through schedulesRef, not a re-subscribe.
-  }, [mapRef, subscribeFrame]);
+  }, [mapRef, subscribeFrame, simSecondsRef]);
+
+  // While paused there is no frame loop to pick up an edit, so a change to the
+  // schedules (or to the followed run) has to repaint the fleet itself —
+  // otherwise stops dragged around a paused map leave their vehicles behind.
+  useEffect(() => {
+    publishFrame();
+  }, [schedules, followRun, publishFrame]);
 
   return null;
 }

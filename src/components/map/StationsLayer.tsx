@@ -7,8 +7,8 @@ import { getVisibleStops } from "../../lib/selectors";
 
 export function StationsLayer({ onSelectStation }: { onSelectStation: (stopId: string) => void }) {
   const { state, dispatch, readOnly } = useMapData();
-  const { active: simActive } = useSimMode();
-  const draggable = !simActive && !readOnly;
+  const { editingLocked } = useSimMode();
+  const draggable = !editingLocked && !readOnly;
   const stops = getVisibleStops(state.data);
 
   return (

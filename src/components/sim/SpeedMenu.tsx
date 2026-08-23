@@ -40,8 +40,8 @@ export function SpeedMenu() {
       {open && (
         <div
           role="menu"
-          // mb-4 to clear the bar's own py-2 — matches ViewModeMenu, so the two
-          // menus in this bar don't float at different heights.
+          // mb-4, not mb-2: the bar's own py-2 eats half the gap, so 8px from
+          // the button leaves the menu flush against the bar's top edge.
           className="absolute bottom-full left-1/2 mb-4 flex -translate-x-1/2 flex-col gap-0.5 rounded-lg bg-neutral-900/95 p-1 shadow-lg backdrop-blur"
         >
           {SIM_MULTIPLIERS.map((m) => (

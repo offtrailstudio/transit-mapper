@@ -1,19 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Play, Printer, Redo2, Undo2 } from "lucide-react";
+import { Printer, Redo2, Undo2 } from "lucide-react";
 import { useMapData } from "../../context/MapDataContext";
-import { useSimMode } from "../../context/SimModeContext";
 import { Tooltip } from "../Tooltip";
 import { ExportImageModal } from "../sidebar/ExportImageModal";
 import { RAIL_ASIDE, RAIL_BUTTON, RAIL_ICON_SIZE } from "./railStyles";
 
 /**
  * Editor-intrinsic rail building blocks. These are the tools the editor owns
- * regardless of who's hosting it — undo/redo/simulate/export plus the shell
- * chrome. The *host* composes these with its own buttons (nav, save, share,
- * account…) into an `EditorRail`/`SharedRail` and passes the result to
- * `AppShell`'s `rail` prop, so the package never imports app/cloud code.
+ * regardless of who's hosting it — undo/redo/export plus the shell chrome. (No
+ * simulation controls: the simulation is always running, so its view menu and
+ * playback bar live over the map instead.) The *host* composes these with its
+ * own buttons (nav, save, share, account…) into an `EditorRail`/`SharedRail`
+ * and passes the result to `AppShell`'s `rail` prop, so the package never
+ * imports app/cloud code.
  */
 
 /** The rail column/row wrapper. A vertical column at `md`+, a scrollable row below it. */
@@ -50,17 +51,6 @@ export function RedoButton() {
     <Tooltip label="Redo (Ctrl/Cmd+Shift+Z)">
       <button type="button" onClick={redo} disabled={!canRedo} aria-label="Redo" className={RAIL_BUTTON}>
         <Redo2 size={RAIL_ICON_SIZE} />
-      </button>
-    </Tooltip>
-  );
-}
-
-export function SimulateButton() {
-  const { enter: enterSim } = useSimMode();
-  return (
-    <Tooltip label="Simulate">
-      <button type="button" onClick={enterSim} aria-label="Run simulation" className={RAIL_BUTTON}>
-        <Play size={RAIL_ICON_SIZE} />
       </button>
     </Tooltip>
   );
