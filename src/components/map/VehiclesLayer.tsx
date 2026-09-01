@@ -114,6 +114,14 @@ export function VehiclesLayer() {
 
     return () => {
       unsubscribe();
+      // react-map-gl destroys the Mapbox map in its own effect cleanup, and React
+      // tears a deleted subtree down parent-first — so by the time this runs on
+      // unmount the map is already gone and every accessor throws ("Cannot read
+      // properties of undefined (reading 'getOwnLayer')"). The layer went with the
+      // map, so there is nothing to remove; only a live map needs cleaning up.
+      if (map._removed) {
+        return;
+      }
       map.off("styledata", addLayer);
       if (map.getLayer(LAYER_ID)) {
         map.removeLayer(LAYER_ID);
