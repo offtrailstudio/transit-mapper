@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { Printer, Redo2, Undo2 } from "lucide-react";
 import { useMapData } from "../../context/MapDataContext";
+import { usePrintMode } from "../../context/PrintModeContext";
 import { Tooltip } from "../Tooltip";
-import { ExportImageModal } from "../sidebar/ExportImageModal";
 import { RAIL_ASIDE, RAIL_BUTTON, RAIL_ICON_SIZE } from "./railStyles";
 
 /**
@@ -58,20 +57,20 @@ export function RedoButton() {
 
 /** Print/export — self-contained: owns the modal it opens. */
 export function ExportButton() {
-  const [isExportOpen, setIsExportOpen] = useState(false);
+  const { isPrinting, open, close } = usePrintMode();
   return (
-    <>
-      <Tooltip label="Export image for print">
-        <button
-          type="button"
-          onClick={() => setIsExportOpen(true)}
-          aria-label="Export image"
-          className={RAIL_BUTTON}
-        >
-          <Printer size={RAIL_ICON_SIZE} />
-        </button>
-      </Tooltip>
-      <ExportImageModal open={isExportOpen} onClose={() => setIsExportOpen(false)} />
-    </>
+    <Tooltip label={isPrinting ? "Back to editing" : "Export image for print"}>
+      <button
+        type="button"
+        onClick={() => (isPrinting ? close() : open())}
+        aria-label="Export image"
+        aria-pressed={isPrinting}
+        className={`${RAIL_BUTTON} ${
+          isPrinting ? "bg-neutral-900 text-white hover:bg-neutral-900 hover:text-white dark:bg-white dark:text-neutral-900" : ""
+        }`}
+      >
+        <Printer size={RAIL_ICON_SIZE} />
+      </button>
+    </Tooltip>
   );
 }

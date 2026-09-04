@@ -333,3 +333,56 @@ describe("ADD_CATALOG_ROUTE", () => {
     expect(state.data.routeTypes?.subway.speedKmh).toBe(ROUTE_TYPE_DEFAULTS.subway.speedKmh);
   });
 });
+
+describe("label overrides", () => {
+  const DATA: TransitMapData = {
+    version: 3,
+    title: "",
+    stops: [
+      { id: "a", name: "Alpha", lng: 1, lat: 2 },
+      { id: "b", name: "Beta", lng: 3, lat: 4 },
+    ],
+    routes: [],
+  };
+  const start = (): EditorState => ({ data: DATA, activeRouteId: null });
+
+  it("records an angle for one stop", () => {
+    const next = mapReducer(start(), { type: "SET_LABEL_OVERRIDE", stopId: "a", override: { angle: 90 } });
+    expect(next.data.labelOverrides).toEqual({ a: { angle: 90 } });
+  });
+
+  it("merges into an existing override rather than replacing it", () => {
+    let state = mapReducer(start(), { type: "SET_LABEL_OVERRIDE", stopId: "a", override: { angle: 90 } });
+    state = mapReducer(state, { type: "SET_LABEL_OVERRIDE", stopId: "a", override: { hidden: true } });
+    expect(state.data.labelOverrides).toEqual({ a: { angle: 90, hidden: true } });
+  });
+
+  it("drops an override that no longer says anything", () => {
+    // An entry equal to the default is an absence — keeping empty objects would
+    // grow the file and defeat labelOverrides being undefined on an untouched map.
+    let state = mapReducer(start(), { type: "SET_LABEL_OVERRIDE", stopId: "a", override: { hidden: true } });
+    state = mapReducer(state, { type: "SET_LABEL_OVERRIDE", stopId: "a", override: { hidden: false } });
+    expect(state.data.labelOverrides).toBeUndefined();
+  });
+
+  it("clears one stop's override", () => {
+    let state = mapReducer(start(), { type: "SET_LABEL_OVERRIDE", stopId: "a", override: { angle: 45 } });
+    state = mapReducer(state, { type: "SET_LABEL_OVERRIDE", stopId: "b", override: { hidden: true } });
+    state = mapReducer(state, { type: "CLEAR_LABEL_OVERRIDE", stopId: "a" });
+    expect(state.data.labelOverrides).toEqual({ b: { hidden: true } });
+  });
+
+  it("clears them all at once", () => {
+    let state = mapReducer(start(), { type: "SET_LABEL_OVERRIDE", stopId: "a", override: { angle: 45 } });
+    state = mapReducer(state, { type: "SET_LABEL_OVERRIDE", stopId: "b", override: { hidden: true } });
+    state = mapReducer(state, { type: "CLEAR_ALL_LABEL_OVERRIDES" });
+    expect(state.data.labelOverrides).toBeUndefined();
+  });
+
+  it("takes a stop's override with it when the stop is deleted", () => {
+    let state = mapReducer(start(), { type: "SET_LABEL_OVERRIDE", stopId: "a", override: { angle: 45 } });
+    state = mapReducer(state, { type: "SET_LABEL_OVERRIDE", stopId: "b", override: { hidden: true } });
+    state = mapReducer(state, { type: "DELETE_STOP", stopId: "a" });
+    expect(state.data.labelOverrides).toEqual({ b: { hidden: true } });
+  });
+});

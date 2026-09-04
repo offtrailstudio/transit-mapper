@@ -3,7 +3,7 @@ import { DEFAULT_ROUTE_TYPE, defaultHeadwayForRouteType, defaultRouteTypes } fro
 import { primaryStopIds, updatePrimaryStopIds } from "./lines";
 import { normalizeMapData } from "./migrate";
 import { ResolvedRoute } from "./presets/catalog";
-import { EMPTY_MAP_DATA, Route, RouteType, Stop, TransitMapData } from "./types";
+import { EMPTY_MAP_DATA, LabelOverride, Route, RouteType, Stop, TransitMapData } from "./types";
 
 export type EditorState = {
   data: TransitMapData;
@@ -34,10 +34,27 @@ export type Action =
   | { type: "SET_TITLE"; title: string }
   | { type: "SET_ROUTE_TYPE"; routeId: string; routeType: RouteType }
   | { type: "SET_ROUTE_HEADWAY"; routeId: string; headwayMin: number }
-  | { type: "SET_ROUTE_TYPE_SPEED"; routeType: RouteType; speedKmh: number };
+  | { type: "SET_ROUTE_TYPE_SPEED"; routeType: RouteType; speedKmh: number }
+  | { type: "SET_LABEL_OVERRIDE"; stopId: string; override: LabelOverride }
+  | { type: "CLEAR_LABEL_OVERRIDE"; stopId: string }
+  | { type: "CLEAR_ALL_LABEL_OVERRIDES" };
 
 function createId(): string {
   return crypto.randomUUID();
+}
+
+/** Puts the override table back on the map, dropping it entirely when empty. */
+function withLabelOverrides(
+  state: EditorState,
+  overrides: Record<string, LabelOverride>
+): EditorState {
+  const data = { ...state.data };
+  if (Object.keys(overrides).length > 0) {
+    data.labelOverrides = overrides;
+  } else {
+    delete data.labelOverrides;
+  }
+  return { ...state, data };
 }
 
 function updateRoute(routes: Route[], routeId: string, update: (route: Route) => Route): Route[] {
@@ -164,7 +181,11 @@ export function mapReducer(state: EditorState, action: Action): EditorState {
           stopIds: pattern.stopIds.filter((id) => id !== action.stopId),
         })),
       }));
-      return { ...state, data: { ...state.data, stops, routes } };
+      // The stop's label override goes with it, or it lingers in the file
+      // forever and would reattach if the id were ever reused.
+      const overrides = { ...(state.data.labelOverrides ?? {}) };
+      delete overrides[action.stopId];
+      return withLabelOverrides({ ...state, data: { ...state.data, stops, routes } }, overrides);
     }
 
     case "DELETE_ROUTE": {
@@ -202,6 +223,29 @@ export function mapReducer(state: EditorState, action: Action): EditorState {
       }));
       return { ...state, data: { ...state.data, routes } };
     }
+
+    case "SET_LABEL_OVERRIDE": {
+      const next = { ...(state.data.labelOverrides ?? {}) };
+      const merged = { ...next[action.stopId], ...action.override };
+      // An override equal to the default is an absence, not an entry — leaving
+      // empty objects behind would grow the file and defeat `labelOverrides`
+      // being undefined on a map nobody has touched.
+      if (!merged.hidden && merged.angle === undefined) {
+        delete next[action.stopId];
+      } else {
+        next[action.stopId] = merged;
+      }
+      return withLabelOverrides(state, next);
+    }
+
+    case "CLEAR_LABEL_OVERRIDE": {
+      const next = { ...(state.data.labelOverrides ?? {}) };
+      delete next[action.stopId];
+      return withLabelOverrides(state, next);
+    }
+
+    case "CLEAR_ALL_LABEL_OVERRIDES":
+      return withLabelOverrides(state, {});
 
     case "RENAME_STOP": {
       const stops = updateStop(state.data.stops, action.stopId, (stop) => ({

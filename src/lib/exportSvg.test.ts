@@ -7,6 +7,7 @@ function layout(overrides: Partial<ExportLayout> = {}): ExportLayout {
     widthPx: 5400,
     heightPx: 7200,
     title: "",
+    labelFontSizePx: 88,
     lines: [],
     stations: [],
     ...overrides,
@@ -259,5 +260,48 @@ describe("buildPreviewSvg", () => {
       layout({ stations: [{ ...station, name: "Very Long Station Name Indeed" }] })
     );
     expect(long).toBe(short);
+  });
+});
+
+describe("label size travels on the layout", () => {
+  it("draws station labels at the size the layout was measured against", () => {
+    const station = { id: "a", name: "Alpha", x: 100, y: 100, labelX: 140, labelY: 140, textAnchor: "start" as const };
+    const svg = buildExportSvg(layout({ labelFontSizePx: 130, stations: [station] }));
+    expect(svg).toContain('font-size="130"');
+    // The default must not leak back in — that mismatch is exactly how a
+    // "bigger labels" setting would silently reintroduce overlap.
+    expect(svg).not.toContain('font-size="88"');
+  });
+});
+
+describe("stops whose label is hidden", () => {
+  const named = { id: "a", name: "Alpha", x: 100, y: 100, labelX: 190, labelY: 100, textAnchor: "start" as const };
+  const unnamed = { id: "b", name: "Beta", x: 400, y: 400, labelX: 400, labelY: 400, labelHidden: true };
+
+  it("still draws the stop", () => {
+    // Hiding a name must never hide the station.
+    const svg = buildExportSvg(layout({ stations: [unnamed] }));
+    expect(svg).toContain("<circle");
+  });
+
+  it("omits only the name", () => {
+    const svg = buildExportSvg(layout({ stations: [named, unnamed] }));
+    expect(svg).toContain(">Alpha<");
+    expect(svg).not.toContain(">Beta<");
+  });
+
+  it("draws it smaller, so it reads as a minor halt beside a named station", () => {
+    const svg = buildExportSvg(layout({ stations: [named, unnamed] }));
+    const radii = [...svg.matchAll(/<circle[^>]*\br="([\d.]+)"/g)].map((m) => Number(m[1]));
+    expect(radii).toHaveLength(2);
+    expect(Math.min(...radii)).toBeLessThan(Math.max(...radii));
+  });
+
+  it("keeps every dot full size in the label-less thumbnail", () => {
+    // buildPreviewSvg draws no text at all, so there is no named/unnamed
+    // distinction to make — shrinking there would just lose stops in the grid.
+    const svg = buildPreviewSvg(layout({ stations: [named, unnamed] }));
+    const radii = new Set([...svg.matchAll(/<circle[^>]*\br="([\d.]+)"/g)].map((m) => m[1]));
+    expect(radii.size).toBe(1);
   });
 });

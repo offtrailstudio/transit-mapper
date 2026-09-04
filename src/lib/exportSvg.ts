@@ -2,7 +2,6 @@ import {
   EXPORT_LINE_WIDTH_PX,
   EXPORT_MARGIN_PX,
   ExportLayout,
-  LABEL_FONT_SIZE_PX,
   LEGEND_FONT_SIZE_PX,
   LEGEND_HEADING_FONT_SIZE_PX,
   LEGEND_SWATCH_GAP_PX,
@@ -10,6 +9,7 @@ import {
   STATION_RADIUS_PX,
   STATION_STROKE_WIDTH_PX,
 } from "./exportGeometry";
+import { EXPORT_FONT_STACK as FONT_STACK } from "./textMeasure";
 
 const BACKGROUND = "#ffffff";
 const STATION_FILL = "#ffffff";
@@ -27,7 +27,6 @@ const TITLE_FILL = "#1a1a1a";
 const FOOTER_TEXT = "www.transitleague.com";
 const FOOTER_FONT_SIZE_PX = 60;
 const FOOTER_FILL = "#737373";
-const FONT_STACK = "Helvetica, Arial, sans-serif";
 
 // Station names (and the map title) are free text the user typed, so they
 // can contain XML's reserved characters (e.g. "5th Ave & Main") — left
@@ -105,18 +104,30 @@ function lineElements({ lines }: ExportLayout): string {
  * so a neighbouring dot can still overlap an earlier label exactly as it does today —
  * splitting them would silently restack every export.
  */
-function stationElements({ stations }: ExportLayout, withLabels: boolean): string {
+// A stop whose name isn't printed still gets a marker — it just reads as a
+// minor halt rather than a named station, the way a real sheet distinguishes the
+// two. Sized so the dot stays legible against the line it sits on.
+const MINOR_STATION_RADIUS_PX = Math.round(STATION_RADIUS_PX * 0.55);
+const MINOR_STATION_STROKE_WIDTH_PX = Math.round(STATION_STROKE_WIDTH_PX * 0.7);
+
+function stationElements({ stations, labelFontSizePx }: ExportLayout, withLabels: boolean): string {
   return stations
     .map((station) => {
-      const circle = `<circle cx="${station.x.toFixed(2)}" cy="${station.y.toFixed(2)}" r="${STATION_RADIUS_PX}" fill="${STATION_FILL}" stroke="${STATION_STROKE}" stroke-width="${STATION_STROKE_WIDTH_PX}" />`;
-      if (!withLabels) {
+      // Only shrink when the label is genuinely off. The label-less *preview*
+      // (buildPreviewSvg) draws no text at all, and every dot there should keep
+      // its full size.
+      const minor = withLabels && station.labelHidden;
+      const radius = minor ? MINOR_STATION_RADIUS_PX : STATION_RADIUS_PX;
+      const strokeWidth = minor ? MINOR_STATION_STROKE_WIDTH_PX : STATION_STROKE_WIDTH_PX;
+      const circle = `<circle cx="${station.x.toFixed(2)}" cy="${station.y.toFixed(2)}" r="${radius}" fill="${STATION_FILL}" stroke="${STATION_STROKE}" stroke-width="${strokeWidth}" />`;
+      if (!withLabels || station.labelHidden) {
         return circle;
       }
       const anchor = station.textAnchor ?? "start";
       const transform = station.rotate
         ? ` transform="rotate(${station.rotate} ${station.labelX.toFixed(2)} ${station.labelY.toFixed(2)})"`
         : "";
-      const label = `<text x="${station.labelX.toFixed(2)}" y="${station.labelY.toFixed(2)}" text-anchor="${anchor}"${transform} font-family="${FONT_STACK}" font-size="${LABEL_FONT_SIZE_PX}" font-weight="600" fill="${LABEL_FILL}" stroke="${BACKGROUND}" stroke-width="${LABEL_HALO_WIDTH_PX}" paint-order="stroke" dominant-baseline="middle">${escapeXml(station.name)}</text>`;
+      const label = `<text x="${station.labelX.toFixed(2)}" y="${station.labelY.toFixed(2)}" text-anchor="${anchor}"${transform} font-family="${FONT_STACK}" font-size="${labelFontSizePx}" font-weight="600" fill="${LABEL_FILL}" stroke="${BACKGROUND}" stroke-width="${LABEL_HALO_WIDTH_PX}" paint-order="stroke" dominant-baseline="middle">${escapeXml(station.name)}</text>`;
       return `${circle}\n${label}`;
     })
     .join("\n");
@@ -175,7 +186,7 @@ export function previewViewBox(layout: ExportLayout): string {
   const minY = Math.min(...ys);
   const maxY = Math.max(...ys);
   // A lone station has no extent of its own, so fall back to a sane window rather than a zero-size viewBox.
-  const side = Math.max(maxX - minX, maxY - minY, LABEL_FONT_SIZE_PX * 10);
+  const side = Math.max(maxX - minX, maxY - minY, layout.labelFontSizePx * 10);
   const padded = side * (1 + PREVIEW_PADDING_RATIO * 2);
   const originX = (minX + maxX) / 2 - padded / 2;
   const originY = (minY + maxY) / 2 - padded / 2;
