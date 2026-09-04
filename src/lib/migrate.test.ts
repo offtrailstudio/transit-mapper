@@ -91,3 +91,60 @@ describe("normalizeMapData", () => {
     expect(result.routeTypes).toEqual(defaultRouteTypes());
   });
 });
+
+describe("label overrides", () => {
+  const base = {
+    version: 3 as const,
+    title: "T",
+    stops: [
+      { id: "a", name: "Alpha", lng: 1, lat: 2 },
+      { id: "b", name: "Beta", lng: 3, lat: 4 },
+    ],
+    routes: [],
+  };
+
+  it("leaves a map that has none without the field at all", () => {
+    expect(normalizeMapData(base).labelOverrides).toBeUndefined();
+  });
+
+  it("keeps well-formed overrides", () => {
+    const data = { ...base, labelOverrides: { a: { angle: 90 }, b: { hidden: true } } };
+    expect(normalizeMapData(data).labelOverrides).toEqual({ a: { angle: 90 }, b: { hidden: true } });
+  });
+
+  it("drops overrides for stops that no longer exist", () => {
+    // A deleted stop's override would otherwise linger in the file forever, and
+    // reattach if the id were ever reused.
+    const data = { ...base, labelOverrides: { a: { angle: 45 }, ghost: { hidden: true } } };
+    expect(normalizeMapData(data).labelOverrides).toEqual({ a: { angle: 45 } });
+  });
+
+  it("snaps a stored angle to the eight slots the placer uses", () => {
+    const data = { ...base, labelOverrides: { a: { angle: 100 } } };
+    expect(normalizeMapData(data).labelOverrides).toEqual({ a: { angle: 90 } });
+  });
+
+  it("wraps an out-of-range angle instead of producing a nonsense bearing", () => {
+    for (const [given, expected] of [[-45, 315], [405, 45], [720, 0]] as const) {
+      const data = { ...base, labelOverrides: { a: { angle: given } } };
+      expect(normalizeMapData(data).labelOverrides?.a.angle).toBe(expected);
+    }
+  });
+
+  it("discards junk rather than trusting whatever was in the file", () => {
+    const data = {
+      ...base,
+      labelOverrides: {
+        a: { angle: Number.NaN },
+        b: { hidden: "yes" },
+      },
+    } as unknown as typeof base;
+    expect(normalizeMapData(data).labelOverrides).toBeUndefined();
+  });
+
+  it("is idempotent, like the rest of the normalizer", () => {
+    const data = { ...base, labelOverrides: { a: { angle: 135 }, b: { hidden: true } } };
+    const once = normalizeMapData(data);
+    expect(normalizeMapData(once)).toEqual(once);
+  });
+});

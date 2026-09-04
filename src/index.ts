@@ -45,7 +45,7 @@ export type { CloudMap } from "./lib/cloudSync";
 
 // --- Data model & migration ---
 export { normalizeMapData } from "./lib/migrate";
-export type { TransitMapData } from "./lib/types";
+export type { TransitMapData, LabelOverride } from "./lib/types";
 
 // --- Adding real routes (drives the "Add a route" picker) ---
 // The picker searches a host-supplied `RouteSource` (via `MapDataProvider`'s
@@ -90,3 +90,8 @@ export type { RouteType } from "./lib/types";
 export { computeExportLayout, DEFAULT_PRINT_SIZE_ID } from "./lib/exportGeometry";
 export type { LayoutMode } from "./lib/exportGeometry";
 export { buildExportSvg, buildPreviewSvg } from "./lib/exportSvg";
+export { PRINT_SIZES, LABEL_FONT_SIZE_PX } from "./lib/exportGeometry";
+export type { PrintSize, PrintSizeId, ExportLayout } from "./lib/exportGeometry";
+export { PrintModeProvider, usePrintMode, DEFAULT_PRINT_SETTINGS } from "./context/PrintModeContext";
+export type { PrintSettings, ImageFormat, BackgroundOption } from "./context/PrintModeContext";
+export { usePrintSheet, PrintSheetProvider } from "./hooks/usePrintSheet";

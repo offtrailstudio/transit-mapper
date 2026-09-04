@@ -49,6 +49,23 @@ export type Route = {
   patterns: StopPattern[];
 };
 
+/**
+ * A hand-made decision about one stop's printed label, overriding the automatic
+ * placer. Kept on the map (not in print settings) because it has to survive a
+ * reload, sync to the cloud, and sit under undo/redo — someone who hand-placed
+ * forty labels and lost them on refresh would not come back.
+ */
+export type LabelOverride = {
+  /** Print the dot but not the name. The stop is still drawn — just smaller. */
+  hidden?: boolean;
+  /**
+   * Which way round the dot the name sits, as a compass bearing: 0 is straight
+   * up, 90 due right, clockwise, snapped to 45°. The text rotates with it so it
+   * reads radially out of the stop — see `placeAtAngle`.
+   */
+  angle?: number;
+};
+
 export type TransitMapData = {
   version: 3;
   title: string;
@@ -56,6 +73,8 @@ export type TransitMapData = {
   routes: Route[];
   /** Editable speed table shared across the project. `normalizeMapData` guarantees it's present. */
   routeTypes?: Record<RouteType, RouteTypeSettings>;
+  /** Per-stop print-label overrides, keyed by stop id. Absent until someone edits one. */
+  labelOverrides?: Record<string, LabelOverride>;
 };
 
 export const EMPTY_MAP_DATA: TransitMapData = {

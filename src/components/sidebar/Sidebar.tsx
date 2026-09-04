@@ -1,7 +1,9 @@
 "use client";
 
 import { useMapData } from "../../context/MapDataContext";
+import { usePrintMode } from "../../context/PrintModeContext";
 import { Sheet, SheetContent, SheetTitle } from "../ui/sheet";
+import { PrintPanel } from "../print/PrintPanel";
 import { AddRouteButton } from "./AddLineButton";
 import { RouteList } from "./LineList";
 import { MapNameRow } from "./MapNameRow";
@@ -10,6 +12,13 @@ import { UnassignedStations } from "./UnassignedStations";
 /** Shared inner content — the desktop column and the mobile sheet both render this. */
 function SidebarBody({ withTitle = false }: { withTitle?: boolean }) {
   const { readOnly } = useMapData();
+  const { isPrinting } = usePrintMode();
+
+  // Print mode takes the column over entirely: its controls are what you are
+  // working on, and the route list would only compete with the sheet on screen.
+  if (isPrinting) {
+    return <PrintPanel />;
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">

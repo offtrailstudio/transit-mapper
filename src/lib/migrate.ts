@@ -3,7 +3,7 @@ import {
   defaultHeadwayForRouteType,
   defaultRouteTypes,
 } from "./lineKinds";
-import { RouteType, RouteTypeSettings, Stop, StopPattern, TransitMapData } from "./types";
+import { LabelOverride, RouteType, RouteTypeSettings, Stop, StopPattern, TransitMapData } from "./types";
 
 /**
  * The shapes older stored maps could have. Before the GTFS rename (#10) the
@@ -89,5 +89,46 @@ export function normalizeMapData(data: TransitMapData): TransitMapData {
     };
   });
 
-  return { version: 3, title: data.title ?? "", stops, routes, routeTypes };
+  // Label overrides arrived after v3, so older maps simply don't have them —
+  // backfilled the same way `title` was, rather than failing the load. Entries
+  // for stops that no longer exist are dropped: a deleted stop's override would
+  // otherwise linger in the file forever and reattach if the id were reused.
+  const stopIds = new Set(stops.map((stop) => stop.id));
+  const labelOverrides = normalizeLabelOverrides(legacy.labelOverrides, stopIds);
+
+  return {
+    version: 3,
+    title: data.title ?? "",
+    stops,
+    routes,
+    routeTypes,
+    ...(labelOverrides ? { labelOverrides } : {}),
+  };
+}
+
+/** Keeps only well-formed overrides for stops that still exist. */
+function normalizeLabelOverrides(
+  raw: unknown,
+  stopIds: Set<string>
+): Record<string, LabelOverride> | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+
+  const cleaned: Record<string, LabelOverride> = {};
+  for (const [stopId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!stopIds.has(stopId) || !value || typeof value !== "object") continue;
+    const { hidden, angle } = value as LabelOverride;
+    const override: LabelOverride = {};
+    if (hidden === true) override.hidden = true;
+    if (typeof angle === "number" && Number.isFinite(angle)) {
+      override.angle = normalizeLabelAngle(angle);
+    }
+    // An override that says nothing is just noise in the file.
+    if (Object.keys(override).length > 0) cleaned[stopId] = override;
+  }
+  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+}
+
+/** Snaps to one of the eight slots the placer uses, in [0, 360). */
+export function normalizeLabelAngle(angle: number): number {
+  return ((Math.round(angle / 45) * 45) % 360 + 360) % 360;
 }
